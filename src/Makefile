@@ -1,14 +1,14 @@
 .SUFFIXES: .c .o .lo
 
 COMPILE = $(CC) -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -O3
-INC_PATH = 
-LIB_PATH = -lm -lpthread
+INC_PATH = -I/usr/include/fastcommon
+LIB_PATH = -lm -lpthread -lfastcommon
 
-SHMCACHE_SHARED_OBJS = 
+SHMCACHE_SHARED_OBJS = shmcache.lo shmopt.lo shmcache_allocator.lo
 
-SHMCACHE_STATIC_OBJS = 
+SHMCACHE_STATIC_OBJS = shmcache.o shmopt.o shmcache_allocator.o
 
-HEADER_FILES = 
+HEADER_FILES = shmcache.h
 
 ALL_OBJS = $(SHMCACHE_STATIC_OBJS) $(SHMCACHE_SHARED_OBJS)
 
