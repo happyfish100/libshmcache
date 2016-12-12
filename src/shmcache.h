@@ -14,7 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <pthread.h>
+#include <sys/shm.h>
 
 #define SHMCACHE_MAX_KEY_SIZE  64
 
@@ -24,12 +26,39 @@
 struct shmcache_config
 {
     int64_t max_memory;
+    int max_key_count;
+    int max_value_size;
     int hash_buckets_count;
     int type;  //shm or mmap
 };
 
+struct shmcache_value
+{
+    int segment; //value segment index
+    int offset;
+    int len;
+};
+
+struct shmcache_hash_entry
+{
+    char key[SHMCACHE_MAX_KEY_SIZE];
+    int key_len;
+    struct shmcache_value value;
+    time_t expires;
+};
+
+struct shmcache_hashtable
+{
+    int count;
+    struct shmcache_hash_entry buckets[0];
+};
+
 struct shmcache_memory
 {
+    int version;
+    int status;
+    pthread_mutex_t lock;
+    struct shmcache_hashtable hashtable;
 };
 
 struct shmcache_manager
