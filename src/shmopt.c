@@ -6,8 +6,11 @@
 #include "logger.h"
 
 int shmopt_init(struct shmcache_segment_context *context,
-		struct shmcache_config *config)
+		const struct shmcache_config *config,
+        const struct shmcache_value_memory_info *value_memory_info)
 {
+    context->config = config;
+    context->value_memory_info = value_memory_info;
 	return 0;
 }
 

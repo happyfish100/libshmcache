@@ -33,7 +33,8 @@ struct shmcache_segment_array
 
 struct shmcache_segment_context
 {
-    struct shmcache_config *config;
+    const struct shmcache_config *config;
+    const struct shmcache_value_memory_info *value_memory_info;
     struct shmcache_segment_info key;
     struct shmcache_segment_array values;
 };
@@ -50,7 +51,8 @@ parameters:
 return error no, 0 for success, != 0 fail
 */
 int shmopt_init(struct shmcache_segment_context *context,
-		struct shmcache_config *config);
+		const struct shmcache_config *config,
+        const struct shmcache_value_memory_info *value_memory_info);
 
 /**
 segment context destroy
