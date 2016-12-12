@@ -51,7 +51,15 @@ struct shmcache_hash_entry
     int key_len;
     struct shmcache_value value;
     time_t expires;
-    int next_offset;
+    int64_t next_offset;
+};
+
+struct shmcache_hentry_fifo_pool {
+    int element_size;
+    int total_count;
+    int free_count;
+    int head;  //OUT
+    int tail;  //IN
 };
 
 struct shmcache_hashtable
@@ -77,6 +85,7 @@ struct shmcache_memory_info
     int status;
     pthread_mutex_t lock;
     struct shmcache_value_memory_info value_memory_info;
+    struct shmcache_hentry_fifo_pool hentry_fifo_pool;
     struct shmcache_hashtable hashtable;
 };
 

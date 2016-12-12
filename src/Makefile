@@ -4,11 +4,13 @@ COMPILE = $(CC) -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -O3
 INC_PATH = -I/usr/include/fastcommon
 LIB_PATH = -lm -lpthread -lfastcommon
 
-SHMCACHE_SHARED_OBJS = shmcache.lo shmopt.lo shmcache_allocator.lo
+SHMCACHE_SHARED_OBJS = shmcache.lo shmopt.lo shmcache_allocator.lo shm_object_pool.lo \
+					   shm_hashtable.lo
 
-SHMCACHE_STATIC_OBJS = shmcache.o shmopt.o shmcache_allocator.o
+SHMCACHE_STATIC_OBJS = shmcache.o shmopt.o shmcache_allocator.o shm_object_pool.o \
+					   shm_hashtable.o
 
-HEADER_FILES = shmcache.h
+HEADER_FILES = shmcache.h shmcache_types.h
 
 ALL_OBJS = $(SHMCACHE_STATIC_OBJS) $(SHMCACHE_SHARED_OBJS)
 
