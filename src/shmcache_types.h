@@ -49,22 +49,30 @@ struct shmcache_hash_entry
 {
     char key[SHMCACHE_MAX_KEY_SIZE];
     int key_len;
-    struct shmcache_value value;
     time_t expires;
+    struct shmcache_value value;
     int64_t next_offset;
 };
 
 struct shmcache_hentry_fifo_pool {
-    int element_size;
-    int total_count;
-    int free_count;
-    int head;  //OUT
-    int tail;  //IN
+    struct {
+        int64_t base_offset;
+        int element_size;
+    } object;
+    struct {
+        int total;
+        int free;
+    } count;
+    struct {
+        int head;  //for pop
+        int tail;  //for push
+    } index;
 };
 
 struct shmcache_hashtable
 {
     int count;
+    int size;
     int64_t buckets[0];
 };
 
@@ -89,21 +97,32 @@ struct shmcache_memory_info
     struct shmcache_hashtable hashtable;
 };
 
-struct shmcache_manager
-{
-};
-
 struct shmcache_buffer
 {
     char *data;
     int length;
 };
 
+struct shmcache_segment_info
+{
+    key_t key; //shm key
+    int size;  //memory size
+    void *base;
+};
+
+struct shmcache_segment_array
+{
+    struct shmcache_segment_info *segments;
+    int alloc_size;
+    int count;
+};
+
 struct shmcache_context
 {
     struct shmcache_config config;
-    struct shmcache_memory_info memory;
-    struct shmcache_manager manager;
+    struct shmcache_memory_info *memory;
+    struct shmcache_segment_info key;
+    struct shmcache_segment_array values;
 };
 
 struct shmcache_stats

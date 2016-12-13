@@ -16,28 +16,7 @@
 #include <string.h>
 #include <pthread.h>
 #include "common_define.h"
-
-struct shmcache_segment_info
-{
-    key_t key; //shm key
-    int size;  //memory size
-    void *ptr;
-};
-
-struct shmcache_segment_array
-{
-    struct shmcache_segment_info *segments;
-    int alloc_size;
-    int count;
-};
-
-struct shmcache_segment_context
-{
-    const struct shmcache_config *config;
-    const struct shmcache_value_memory_info *value_memory_info;
-    struct shmcache_segment_info key;
-    struct shmcache_segment_array values;
-};
+#include "shmcache_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,27 +25,25 @@ extern "C" {
 /**
 segment context init
 parameters:
+	segment_context: the context pointer
 	context: the context pointer
-    config: the shmcache config
 return error no, 0 for success, != 0 fail
 */
-int shmopt_init(struct shmcache_segment_context *context,
-		const struct shmcache_config *config,
-        const struct shmcache_value_memory_info *value_memory_info);
+int shmopt_init(struct shmcache_context *context);
 
 /**
 segment context destroy
 parameters:
 	context: the context pointer
 */
-void shmopt_destroy(struct shmcache_segment_context *context);
+void shmopt_destroy(struct shmcache_context *context);
 
 /**
 reinit
 parameters:
 	context: the context pointer
 */
-void shmopt_reinit(struct shmcache_segment_context *context);
+void shmopt_reinit(struct shmcache_context *context);
 
 /**
 alloc a node from the context
@@ -75,7 +52,7 @@ parameters:
     index: value segment index
 return the value segment ptr, return NULL if fail
 */
-void *shmopt_get_value_segment(struct shmcache_segment_context *context,
+void *shmopt_get_value_segment(struct shmcache_context *context,
         const int index);
 
 #ifdef __cplusplus

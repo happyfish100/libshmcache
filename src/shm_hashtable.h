@@ -20,6 +20,11 @@
 #include "common_define.h"
 #include "shmcache_types.h"
 
+struct shm_hashtable {
+    struct shmcache_hashtable *ht;
+    const truct shmcache_config *config;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -31,8 +36,7 @@ parameters:
     config: the config parameters
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_init(struct shmcache_hashtable *ht,
-		struct shmcache_config *config);
+int shm_ht_init(struct shmcache_context *context);
 
 /**
 ht destroy
