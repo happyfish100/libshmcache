@@ -34,7 +34,6 @@ struct shmcache_config
     int64_t segment_size;
     int max_key_count;
     int max_value_size;
-    int hash_buckets_count;
     int type;  //shm or mmap
 };
 
@@ -54,6 +53,11 @@ struct shmcache_hash_entry
     int64_t next_offset;
 };
 
+struct shmcache_ring_queue {
+    int head;  //for pop
+    int tail;  //for push
+};
+
 struct shmcache_hentry_fifo_pool {
     struct {
         int64_t base_offset;
@@ -63,17 +67,36 @@ struct shmcache_hentry_fifo_pool {
         int total;
         int free;
     } count;
-    struct {
-        int head;  //for pop
-        int tail;  //for push
-    } index;
+    struct shmcache_ring_queue index;
 };
 
 struct shmcache_hashtable
 {
+    int capacity;
     int count;
-    int size;
-    int64_t buckets[0];
+    int64_t buckets[0]; //entry offset
+};
+
+struct shm_allocator_info
+{
+    int status;
+    struct {
+        int64_t total;
+        int64_t used;
+    } size;
+
+    struct {
+        int64_t base;
+        int64_t free;
+        int64_t end;
+    } offset;
+};
+
+struct shmcache_value_allocators
+{
+    struct shmcache_ring_queue free;
+    struct shmcache_ring_queue doing;
+    struct shmcache_ring_queue done;
 };
 
 struct shmcache_value_size_info
@@ -94,6 +117,7 @@ struct shmcache_memory_info
     pthread_mutex_t lock;
     struct shmcache_value_memory_info value_memory_info;
     struct shmcache_hentry_fifo_pool hentry_fifo_pool;
+    struct shmcache_value_allocators value_allocators;
     struct shmcache_hashtable hashtable;
 };
 

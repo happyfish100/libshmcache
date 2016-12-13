@@ -27,6 +27,12 @@ struct shm_object_pool {
 extern "C" {
 #endif
 
+static inline int64_t shm_object_pool_get_memory_size(
+        const int element_size, const int max_count)
+{
+    return (element_size + sizeof(int64_t)) * (int64_t)max_count;
+}
+
 /**
 set object pool
 parameters:

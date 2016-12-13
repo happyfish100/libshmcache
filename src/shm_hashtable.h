@@ -20,30 +20,30 @@
 #include "common_define.h"
 #include "shmcache_types.h"
 
-struct shm_hashtable {
-    struct shmcache_hashtable *ht;
-    const truct shmcache_config *config;
-};
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static inline int64_t shm_ht_get_memory_size(const int capacity)
+{
+    return sizeof(int64_t) * (int64_t)capacity;
+}
 
 /**
 ht init
 parameters:
 	ht: the ht pointer
-    config: the config parameters
+    capacity: the ht capacity
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_init(struct shmcache_context *context);
+int shm_ht_init(struct shmcache_context *context, const int capacity);
 
 /**
 ht destroy
 parameters:
 	ht: the ht pointer
 */
-void shm_ht_destroy(struct shmcache_hashtable *ht);
+void shm_ht_destroy(struct shmcache_context *context);
 
 /**
 set value
@@ -54,7 +54,7 @@ parameters:
     ttl: the time to live in seconds
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_set(struct shmcache_hashtable *ht,
+int shm_ht_set(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         const struct shmcache_buffer *value, const int ttl);
 
@@ -66,7 +66,7 @@ parameters:
     value: store the returned value
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_get(struct shmcache_hashtable *ht,
+int shm_ht_get(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         struct shmcache_buffer *value);
 
@@ -77,7 +77,7 @@ parameters:
     key: the key
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_delete(struct shmcache_hashtable *ht,
+int shm_ht_delete(struct shmcache_context *context,
         const struct shmcache_buffer *key);
 
 #ifdef __cplusplus
