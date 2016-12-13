@@ -24,39 +24,39 @@ void shm_object_pool_init(struct shm_object_pool *op)
     int64_t *end;
     int64_t offset;
 
-    end = op->base + op->hentry_fifo_pool->count.total;
+    end = op->base + op->hentry_fifo_pool->queue.capacity;
     offset = op->hentry_fifo_pool->object.base_offset;
     for (p=op->base; p<end; p++) {
         *p = offset;
         offset += op->hentry_fifo_pool->object.element_size;
     }
 
-    op->hentry_fifo_pool->index.head = 0;
-    op->hentry_fifo_pool->index.tail = (op->hentry_fifo_pool->count.total - 1);
+    op->hentry_fifo_pool->queue.head = 0;
+    op->hentry_fifo_pool->queue.tail = (op->hentry_fifo_pool->queue.capacity - 1);
 }
 
 int64_t shm_object_pool_alloc(struct shm_object_pool *op)
 {
     int64_t obj_offset;
-    if (op->hentry_fifo_pool->index.head == op->hentry_fifo_pool->index.tail) {
+    if (op->hentry_fifo_pool->queue.head == op->hentry_fifo_pool->queue.tail) {
         return -1;
     }
 
-    obj_offset = op->base[op->hentry_fifo_pool->index.head];
-    op->hentry_fifo_pool->index.head = (op->hentry_fifo_pool->index.head + 1) %
-        op->hentry_fifo_pool->count.total;
+    obj_offset = op->base[op->hentry_fifo_pool->queue.head];
+    op->hentry_fifo_pool->queue.head = (op->hentry_fifo_pool->queue.head + 1) %
+        op->hentry_fifo_pool->queue.capacity;
     return obj_offset;
 }
 
 int shm_object_pool_free(struct shm_object_pool *op, const int64_t obj_offset)
 {
     int next_index;
-    next_index = (op->hentry_fifo_pool->index.tail + 1) % op->hentry_fifo_pool->count.total;
-    if (next_index == op->hentry_fifo_pool->index.head) {
+    next_index = (op->hentry_fifo_pool->queue.tail + 1) % op->hentry_fifo_pool->queue.capacity;
+    if (next_index == op->hentry_fifo_pool->queue.head) {
         return ENOSPC;
     }
     op->base[next_index] = obj_offset;
-    op->hentry_fifo_pool->index.tail = next_index;
+    op->hentry_fifo_pool->queue.tail = next_index;
     return 0;
 }
 

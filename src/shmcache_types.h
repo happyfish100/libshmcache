@@ -53,7 +53,8 @@ struct shmcache_hash_entry
     int64_t next_offset;
 };
 
-struct shmcache_ring_queue {
+struct shm_ring_queue {
+    int capacity;
     int head;  //for pop
     int tail;  //for push
 };
@@ -63,11 +64,7 @@ struct shmcache_hentry_fifo_pool {
         int64_t base_offset;
         int element_size;
     } object;
-    struct {
-        int total;
-        int free;
-    } count;
-    struct shmcache_ring_queue index;
+    struct shm_ring_queue queue;
 };
 
 struct shmcache_hashtable
@@ -94,9 +91,9 @@ struct shm_allocator_info
 
 struct shmcache_value_allocators
 {
-    struct shmcache_ring_queue free;
-    struct shmcache_ring_queue doing;
-    struct shmcache_ring_queue done;
+    struct shm_ring_queue free;
+    struct shm_ring_queue doing;
+    struct shm_ring_queue done;
 };
 
 struct shmcache_value_size_info
