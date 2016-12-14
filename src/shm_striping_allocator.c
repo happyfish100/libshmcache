@@ -4,8 +4,10 @@
 #include "shm_striping_allocator.h"
 
 void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
+		const struct shm_segment_striping_pair *ssp_index,
 		const int64_t base_offset, const int total_size)
 {
+    allocator->index = *ssp_index;
     allocator->offset.base = base_offset;
     allocator->size.total = total_size;
     allocator->offset.end = base_offset + total_size;

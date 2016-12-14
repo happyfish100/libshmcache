@@ -68,7 +68,6 @@ struct shm_ring_queue {
 };
 
 struct shm_object_pool_info {
-    struct shm_segment_striping_pair index;
     struct {
         int64_t base_offset;
         int element_size;
@@ -86,6 +85,7 @@ struct shm_hashtable
 
 struct shm_striping_allocator
 {
+    struct shm_segment_striping_pair index;
     struct {
         int total;
         int used;
@@ -96,7 +96,6 @@ struct shm_striping_allocator
         int64_t free;
         int64_t end;
     } offset;
-    //int status;
 };
 
 struct shm_value_allocator
@@ -123,7 +122,7 @@ struct shm_memory_info
     int version;
     int status;
     pthread_mutex_t lock;
-    struct shm_value_memory_info value_memory_info;
+    struct shm_value_memory_info vm_info;  //value memory info
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
     struct shm_hashtable hashtable;
@@ -153,7 +152,7 @@ struct shmcache_context
 {
     struct shmcache_config config;
     struct shm_memory_info *memory;
-    struct shmcache_segment_info key;
+    struct shmcache_segment_info hashtable;
     struct shmcache_segment_array values;
 };
 

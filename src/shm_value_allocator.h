@@ -18,6 +18,12 @@
 #include "common_define.h"
 #include "shmcache_types.h"
 
+struct shm_value_allocator_context
+{
+    struct shm_value_allocator *allocator;
+    struct shmcache_context *context;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,7 +35,7 @@ parameters:
     context: the context
 return error no, 0 for success, != 0 fail
 */
-void shm_value_allocator_init(struct shm_value_allocator *allocator,
+void shm_value_allocator_init(struct shm_value_allocator_context *acontext,
 		struct shmcache_context *context);
 
 /**
@@ -40,7 +46,7 @@ parameters:
     value: return the value
 return error no, 0 for success, != 0 fail
 */
-int shm_value_allocator_alloc(struct shm_value_allocator *allocator,
+int shm_value_allocator_alloc(struct shm_value_allocator_context *acontext,
         const int size, struct shm_value *value);
 
 /**
@@ -50,7 +56,7 @@ parameters:
     value:  the value to free
 return error no, 0 for success, != 0 fail
 */
-int shm_value_allocator_free(struct shm_value_allocator *allocator,
+int shm_value_allocator_free(struct shm_value_allocator_context *acontext,
         struct shm_value *value);
 
 #ifdef __cplusplus

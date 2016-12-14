@@ -26,12 +26,14 @@ extern "C" {
 allocator init
 parameters:
 	allocator: the allocator pointer
+    ssp_index: segment and striping pair
     base_offset: the base offset
 	total_size: the memory size
 return error no, 0 for success, != 0 fail
 */
 void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
-		const int64_t base_offset, const int total_size);
+		const struct shm_segment_striping_pair *ssp_index,
+        const int64_t base_offset, const int total_size);
 
 /**
 reset for recycle use

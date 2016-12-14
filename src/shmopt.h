@@ -39,21 +39,23 @@ parameters:
 void shmopt_destroy(struct shmcache_context *context);
 
 /**
-reinit
-parameters:
-	context: the context pointer
-*/
-void shmopt_reinit(struct shmcache_context *context);
-
-/**
 alloc a node from the context
 parameters:
 	context: the context pointer
     index: value segment index
 return the value segment ptr, return NULL if fail
 */
-void *shmopt_get_value_segment(struct shmcache_context *context,
-        const int index);
+static inline void *shmopt_get_value_segment(struct shmcache_context *context,
+        const int index)
+{
+    if (index < context->values.count) {
+        return context->values.segments[index].base;
+    } else if (index < context->memory->vm_info.segment.count) {
+        //TODO init segment
+    } else {
+        return NULL;
+    }
+}
 
 #ifdef __cplusplus
 }
