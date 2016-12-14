@@ -33,3 +33,12 @@ int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
     return ptr_offset;
 }
 
+void shm_striping_allocator_free(struct shm_striping_allocator *allocator,
+        const int size)
+{
+    allocator->size.used -= size;
+    if (allocator->size.used <= 0) {
+        shm_striping_allocator_reset(allocator);
+    }
+}
+

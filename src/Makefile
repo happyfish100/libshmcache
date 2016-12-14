@@ -5,12 +5,13 @@ INC_PATH = -I/usr/include/fastcommon
 LIB_PATH = -lm -lpthread -lfastcommon
 
 SHMCACHE_SHARED_OBJS = shmcache.lo shmopt.lo shm_striping_allocator.lo shm_object_pool.lo \
-					   shm_hashtable.lo shm_ring_queue.lo
+					   shm_hashtable.lo shm_ring_queue.lo shm_value_allocator.lo
 
 SHMCACHE_STATIC_OBJS = shmcache.o shmopt.o shm_striping_allocator.o shm_object_pool.o \
-					   shm_hashtable.o shm_ring_queue.o
+					   shm_hashtable.o shm_ring_queue.o shm_value_allocator.o
 
-HEADER_FILES = shmcache.h shmcache_types.h shm_ring_queue.h
+HEADER_FILES = shmcache.h shmcache_types.h shm_ring_queue.h shm_striping_allocator.h \
+			   shm_striping_allocator.h
 
 ALL_OBJS = $(SHMCACHE_STATIC_OBJS) $(SHMCACHE_SHARED_OBJS)
 

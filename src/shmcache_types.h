@@ -37,11 +37,16 @@ struct shmcache_config
     int type;  //shm or mmap
 };
 
+struct shm_segment_striping_pair {
+    short segment;  //shm segment index
+    short striping; //shm striping index
+};
+
 struct shm_value
 {
-    int64_t offset;
-    int segment; //value segment index
+    int64_t offset; //segment offset
     int length;
+    struct shm_segment_striping_pair index;
 };
 
 struct shm_hash_entry
@@ -63,6 +68,7 @@ struct shm_ring_queue {
 };
 
 struct shm_object_pool_info {
+    struct shm_segment_striping_pair index;
     struct {
         int64_t base_offset;
         int element_size;
@@ -81,8 +87,8 @@ struct shm_hashtable
 struct shm_striping_allocator
 {
     struct {
-        int64_t total;
-        int64_t used;
+        int total;
+        int used;
     } size;
 
     struct {

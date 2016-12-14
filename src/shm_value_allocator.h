@@ -6,10 +6,10 @@
 * Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
 **/
 
-//shm_striping_allocator.h
+//shm_value_allocator.h
 
-#ifndef _SHM_STRIPING_ALLOCATOR_H
-#define _SHM_STRIPING_ALLOCATOR_H
+#ifndef _SHM_VALUE_ALLOCATOR_H
+#define _SHM_VALUE_ALLOCATOR_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,39 +26,32 @@ extern "C" {
 allocator init
 parameters:
 	allocator: the allocator pointer
-    base_offset: the base offset
-	total_size: the memory size
+    context: the context
 return error no, 0 for success, != 0 fail
 */
-void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
-		const int64_t base_offset, const int total_size);
-
-/**
-reset for recycle use
-parameters:
-	allocator: the allocator pointer
-*/
-void shm_striping_allocator_reset(struct shm_striping_allocator *allocator);
+void shm_value_allocator_init(struct shm_value_allocator *allocator,
+		struct shmcache_context *context);
 
 /**
 alloc memory from the allocator
 parameters:
 	allocator: the allocator pointer
     size: alloc bytes
-return the alloced memory offset, return -1 if fail
+    value: return the value
+return error no, 0 for success, != 0 fail
 */
-int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
-        const int size);
+int shm_value_allocator_alloc(struct shm_value_allocator *allocator,
+        const int size, struct shm_value *value);
 
 /**
 free memory to the allocator
 parameters:
 	allocator: the allocator pointer
-    size: alloc bytes
-return none
+    value:  the value to free
+return error no, 0 for success, != 0 fail
 */
-void shm_striping_allocator_free(struct shm_striping_allocator *allocator,
-        const int size);
+int shm_value_allocator_free(struct shm_value_allocator *allocator,
+        struct shm_value *value);
 
 #ifdef __cplusplus
 }
