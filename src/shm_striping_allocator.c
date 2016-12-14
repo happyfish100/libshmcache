@@ -1,25 +1,25 @@
-//shm_allocator.c
+//shm_striping_allocator.c
 
 #include <errno.h>
-#include "shm_allocator.h"
+#include "shm_striping_allocator.h"
 
-void shm_allocator_init(struct shm_allocator_info *allocator,
+void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
 		const int64_t base_offset, const int total_size)
 {
     allocator->offset.base = base_offset;
     allocator->size.total = total_size;
     allocator->offset.end = base_offset + total_size;
 
-    shm_allocator_reset(allocator);
+    shm_striping_allocator_reset(allocator);
 }
 
-void shm_allocator_reset(struct shm_allocator_info *allocator)
+void shm_striping_allocator_reset(struct shm_striping_allocator *allocator)
 {
     allocator->size.used = 0;
     allocator->offset.free = allocator->offset.base;
 }
 
-int64_t shm_allocator_alloc(struct shm_allocator_info *allocator,
+int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
         const int size)
 {
     int64_t ptr_offset;

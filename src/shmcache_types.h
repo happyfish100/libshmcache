@@ -51,8 +51,8 @@ struct shm_hash_entry
     time_t expires;
     struct shm_value value;
     struct {
-        int64_t hash;
-        int64_t list;
+        int64_t hash;  //for hashtable
+        int64_t list;  //for list
     } next_offset;
 };
 
@@ -78,9 +78,8 @@ struct shm_hashtable
     int64_t buckets[0]; //entry offset
 };
 
-struct shm_allocator_info
+struct shm_striping_allocator
 {
-    int status;
     struct {
         int64_t total;
         int64_t used;
@@ -91,13 +90,14 @@ struct shm_allocator_info
         int64_t free;
         int64_t end;
     } offset;
+    //int status;
 };
 
-struct shm_value_allocators
+struct shm_value_allocator
 {
-    struct shm_ring_queue free;
-    struct shm_ring_queue doing;
-    struct shm_ring_queue done;
+    struct shm_object_pool_info free;
+    struct shm_object_pool_info doing;
+    struct shm_object_pool_info done;
 };
 
 struct shm_value_size_info
@@ -109,7 +109,7 @@ struct shm_value_size_info
 struct shm_value_memory_info
 {
     struct shm_value_size_info segment;
-    struct shm_value_size_info strip;
+    struct shm_value_size_info striping;
 };
 
 struct shm_memory_info
@@ -118,8 +118,8 @@ struct shm_memory_info
     int status;
     pthread_mutex_t lock;
     struct shm_value_memory_info value_memory_info;
-    struct shm_object_pool_info hentry_fifo_pool;
-    struct shm_value_allocators value_allocators;
+    struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
+    struct shm_value_allocator value_allocator;
     struct shm_hashtable hashtable;
 };
 

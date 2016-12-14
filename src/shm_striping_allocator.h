@@ -6,10 +6,10 @@
 * Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
 **/
 
-//shm_allocator.h
+//shm_striping_allocator.h
 
-#ifndef _SHM_ALLOCATOR_H
-#define _SHM_ALLOCATOR_H
+#ifndef _SHM_STRIPING_ALLOCATOR_H
+#define _SHM_STRIPING_ALLOCATOR_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +30,7 @@ parameters:
 	total_size: the memory size
 return error no, 0 for success, != 0 fail
 */
-void shm_allocator_init(struct shm_allocator_info *allocator,
+void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
 		const int64_t base_offset, const int total_size);
 
 /**
@@ -38,7 +38,7 @@ reset for recycle use
 parameters:
 	allocator: the allocator pointer
 */
-void shm_allocator_reset(struct shm_allocator_info *allocator);
+void shm_striping_allocator_reset(struct shm_striping_allocator *allocator);
 
 /**
 alloc memory from the allocator
@@ -47,7 +47,7 @@ parameters:
     size: alloc bytes
 return the alloced memory offset, return -1 if fail
 */
-int64_t shm_allocator_alloc(struct shm_allocator_info *allocator,
+int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
         const int size);
 
 #ifdef __cplusplus
