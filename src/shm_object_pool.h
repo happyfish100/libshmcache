@@ -18,8 +18,8 @@
 #include "common_define.h"
 #include "shmcache_types.h"
 
-struct shm_object_pool {
-    struct shmcache_hentry_fifo_pool *hentry_fifo_pool;
+struct shm_object_pool_context {
+    struct shm_object_pool_info *obj_pool_info;
     int64_t *base;
 };
 
@@ -37,28 +37,36 @@ static inline int64_t shm_object_pool_get_memory_size(
 set object pool
 parameters:
 	op: the object pool
-    hentry_fifo_pool: fifo pool in share memory
+    obj_pool_info: fifo pool in share memory
     base: the array base
 return error no, 0 for success, != 0 fail
 */
-void shm_object_pool_set(struct shm_object_pool *op,
-        struct shmcache_hentry_fifo_pool *hentry_fifo_pool,
+void shm_object_pool_set(struct shm_object_pool_context *op,
+        struct shm_object_pool_info *obj_pool_info,
         int64_t *base);
 
 /**
-init object pool
+init object pool to empty queue
 parameters:
 	op: the object pool
 return error no, 0 for success, != 0 fail
 */
-void shm_object_pool_init(struct shm_object_pool *op);
+void shm_object_pool_init_empty(struct shm_object_pool_context *op);
+
+/**
+init object pool to full queue
+parameters:
+	op: the object pool
+return error no, 0 for success, != 0 fail
+*/
+void shm_object_pool_init_full(struct shm_object_pool_context *op);
 
 /**
 op destroy
 parameters:
 	op: the object pool
 */
-void shm_object_pool_destroy(struct shm_object_pool *op);
+void shm_object_pool_destroy(struct shm_object_pool_context *op);
 
 /**
 alloc a node from the object pool
@@ -66,7 +74,7 @@ parameters:
 	op: the object pool
 return the alloced object offset, return -1 if fail
 */
-int64_t shm_object_pool_alloc(struct shm_object_pool *op);
+int64_t shm_object_pool_alloc(struct shm_object_pool_context *op);
 
 /**
 free  a node to the object pool
@@ -75,7 +83,7 @@ parameters:
     obj_offset: the object offset
 return 0 for success, != 0 fail
 */
-int shm_object_pool_free(struct shm_object_pool *op, const int64_t obj_offset);
+int shm_object_pool_free(struct shm_object_pool_context *op, const int64_t obj_offset);
 
 #ifdef __cplusplus
 }

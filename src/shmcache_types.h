@@ -37,20 +37,23 @@ struct shmcache_config
     int type;  //shm or mmap
 };
 
-struct shmcache_value
+struct shm_value
 {
     int64_t offset;
     int segment; //value segment index
     int length;
 };
 
-struct shmcache_hash_entry
+struct shm_hash_entry
 {
     char key[SHMCACHE_MAX_KEY_SIZE];
     int key_len;
     time_t expires;
-    struct shmcache_value value;
-    int64_t next_offset;
+    struct shm_value value;
+    struct {
+        int64_t hash;
+        int64_t list;
+    } next_offset;
 };
 
 struct shm_ring_queue {
@@ -59,7 +62,7 @@ struct shm_ring_queue {
     int tail;  //for push
 };
 
-struct shmcache_hentry_fifo_pool {
+struct shm_object_pool_info {
     struct {
         int64_t base_offset;
         int element_size;
@@ -67,8 +70,9 @@ struct shmcache_hentry_fifo_pool {
     struct shm_ring_queue queue;
 };
 
-struct shmcache_hashtable
+struct shm_hashtable
 {
+    int64_t list_head; //for iterator
     int capacity;
     int count;
     int64_t buckets[0]; //entry offset
@@ -89,33 +93,34 @@ struct shm_allocator_info
     } offset;
 };
 
-struct shmcache_value_allocators
+struct shm_value_allocators
 {
     struct shm_ring_queue free;
     struct shm_ring_queue doing;
     struct shm_ring_queue done;
 };
 
-struct shmcache_value_size_info
+struct shm_value_size_info
 {
     int64_t size;
     int count;
 };
 
-struct shmcache_value_memory_info { 
-    struct shmcache_value_size_info segment;
-    struct shmcache_value_size_info strip;
+struct shm_value_memory_info
+{
+    struct shm_value_size_info segment;
+    struct shm_value_size_info strip;
 };
 
-struct shmcache_memory_info
+struct shm_memory_info
 {
     int version;
     int status;
     pthread_mutex_t lock;
-    struct shmcache_value_memory_info value_memory_info;
-    struct shmcache_hentry_fifo_pool hentry_fifo_pool;
-    struct shmcache_value_allocators value_allocators;
-    struct shmcache_hashtable hashtable;
+    struct shm_value_memory_info value_memory_info;
+    struct shm_object_pool_info hentry_fifo_pool;
+    struct shm_value_allocators value_allocators;
+    struct shm_hashtable hashtable;
 };
 
 struct shmcache_buffer
@@ -141,7 +146,7 @@ struct shmcache_segment_array
 struct shmcache_context
 {
     struct shmcache_config config;
-    struct shmcache_memory_info *memory;
+    struct shm_memory_info *memory;
     struct shmcache_segment_info key;
     struct shmcache_segment_array values;
 };
