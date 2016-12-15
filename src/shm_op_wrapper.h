@@ -32,8 +32,8 @@ parameters:
     key: return the key
 return share memory pointer, NULL for fail
 */
-void *shm_mmap(const int type, const char *filename, int proj_id,
-        const int64_t size, key_t *key);
+void *shm_mmap(const int type, const char *filename,
+        const int proj_id, const int64_t size, key_t *key);
 
 /**
 munmap or shmdt

@@ -108,7 +108,10 @@ struct shm_value_allocator
 struct shm_value_size_info
 {
     int64_t size;
-    int count;
+    struct {
+        int current;
+        int max;
+    } count;
 };
 
 struct shm_value_memory_info
@@ -119,7 +122,7 @@ struct shm_value_memory_info
 
 struct shm_memory_info
 {
-    int version;
+    //int version;
     int status;
     pthread_mutex_t lock;
     struct shm_value_memory_info vm_info;  //value memory info
