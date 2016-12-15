@@ -30,20 +30,21 @@ static inline int64_t shm_ht_get_memory_size(const int capacity)
 }
 
 /**
+get hashtable capacity
+parameters:
+    max_count: max entry counti
+return hashtable capacity
+*/
+int shm_ht_get_capacity(const int max_count);
+
+/**
 ht init
 parameters:
 	ht: the ht pointer
     capacity: the ht capacity
-return error no, 0 for success, != 0 for fail
+return none
 */
-int shm_ht_init(struct shmcache_context *context, const int capacity);
-
-/**
-ht destroy
-parameters:
-	ht: the ht pointer
-*/
-void shm_ht_destroy(struct shmcache_context *context);
+void shm_ht_init(struct shmcache_context *context, const int capacity);
 
 /**
 set value

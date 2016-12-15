@@ -45,12 +45,12 @@ parameters:
     index: value segment index
 return the value segment ptr, return NULL if fail
 */
-static inline void *shmopt_get_value_segment(struct shmcache_context *context,
+static inline char *shmopt_get_value_segment(struct shmcache_context *context,
         const int index)
 {
     if (index < context->values.count) {
         return context->values.segments[index].base;
-    } else if (index < context->memory->vm_info.segment.count) {
+    } else if (index < context->memory->vm_info.segment.count.current) {
         //TODO init segment
     } else {
         return NULL;

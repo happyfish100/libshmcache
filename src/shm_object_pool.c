@@ -29,11 +29,13 @@ void shm_object_pool_init_full(struct shm_object_pool_context *op)
 
     op->obj_pool_info->queue.head = 0;
     op->obj_pool_info->queue.tail = (op->obj_pool_info->queue.capacity - 1);
+    op->index = -1;
 }
 
 void shm_object_pool_init_empty(struct shm_object_pool_context *op)
 {
     op->obj_pool_info->queue.head = op->obj_pool_info->queue.tail = 0;
+    op->index = -1;
 }
 
 int shm_object_pool_get_count(struct shm_object_pool_context *op)

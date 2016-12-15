@@ -18,40 +18,32 @@
 #include "common_define.h"
 #include "shmcache_types.h"
 
-struct shm_object_pool_context {
-    struct shm_object_pool_info *obj_pool_info;
-    int64_t *offsets;  //object offset array
-    int index;   //for iterator
-};
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
-get object pool memory size for empty queue
+get object pool memory size for queue
 parameters:
-    element_size: the element size
     max_count: the max count
 return memory size
 */
-static inline int64_t shm_object_pool_get_empty_memory_size(
-        const int element_size, const int max_count)
+static inline int64_t shm_object_pool_get_queue_memory_size(const int max_count)
 {
     return sizeof(int64_t) * (int64_t)max_count;
 }
 
 /**
-get object pool memory size for full queue
+get object pool memory size for object
 parameters:
     element_size: the element size
     max_count: the max count
 return memory size
 */
-static inline int64_t shm_object_pool_get_full_memory_size(
+static inline int64_t shm_object_pool_get_object_memory_size(
         const int element_size, const int max_count)
 {
-    return (element_size + sizeof(int64_t)) * (int64_t)max_count;
+    return (int64_t)element_size * (int64_t)max_count;
 }
 
 /**

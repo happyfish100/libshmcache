@@ -22,7 +22,7 @@
 #define SHMCACHE_MAX_KEY_SIZE  64
 
 #define SHMCACHE_STATUS_INIT   0
-#define SHMCACHE_STATUS_NORMAL 1
+#define SHMCACHE_STATUS_NORMAL 0x12345678
 
 #define SHMCACHE_TYPE_SHM    1
 #define SHMCACHE_TYPE_MMAP   2
@@ -128,7 +128,7 @@ struct shm_memory_info
     struct shm_value_memory_info vm_info;  //value memory info
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
-    struct shm_hashtable hashtable;
+    struct shm_hashtable hashtable;   //must be last
 };
 
 struct shmcache_buffer
@@ -141,7 +141,7 @@ struct shmcache_segment_info
 {
     key_t key; //shm key
     int size;  //memory size
-    void *base;
+    char *base;
 };
 
 struct shmcache_segment_array
@@ -151,12 +151,19 @@ struct shmcache_segment_array
     int count;
 };
 
+struct shm_object_pool_context {
+    struct shm_object_pool_info *obj_pool_info;
+    int64_t *offsets;  //object offset array
+    int index;   //for iterator
+};
+
 struct shmcache_context
 {
     struct shmcache_config config;
     struct shm_memory_info *memory;
     struct shmcache_segment_info hashtable;
     struct shmcache_segment_array values;
+    struct shm_object_pool_context hash_op_context;
 };
 
 struct shmcache_stats
