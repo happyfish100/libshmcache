@@ -54,7 +54,7 @@ parameters:
     offsets: the array offsets
 return error no, 0 for success, != 0 fail
 */
-void shm_object_pool_set(struct shm_object_pool_context *op,
+void shm_object_pool_set(struct shmcache_object_pool_context *op,
         struct shm_object_pool_info *obj_pool_info,
         int64_t *offsets);
 
@@ -64,7 +64,7 @@ parameters:
 	op: the object pool
 return error no, 0 for success, != 0 fail
 */
-void shm_object_pool_init_empty(struct shm_object_pool_context *op);
+void shm_object_pool_init_empty(struct shmcache_object_pool_context *op);
 
 /**
 init object pool to full queue
@@ -72,7 +72,7 @@ parameters:
 	op: the object pool
 return error no, 0 for success, != 0 fail
 */
-void shm_object_pool_init_full(struct shm_object_pool_context *op);
+void shm_object_pool_init_full(struct shmcache_object_pool_context *op);
 
 /**
 get object count in object pool
@@ -80,7 +80,7 @@ parameters:
 	op: the object pool
 return object count
 */
-int shm_object_pool_get_count(struct shm_object_pool_context *op);
+int shm_object_pool_get_count(struct shmcache_object_pool_context *op);
 
 /**
 alloc a node from the object pool
@@ -88,7 +88,7 @@ parameters:
 	op: the object pool
 return the alloced object offset, return -1 if fail
 */
-int64_t shm_object_pool_alloc(struct shm_object_pool_context *op);
+int64_t shm_object_pool_alloc(struct shmcache_object_pool_context *op);
 
 #define shm_object_pool_pop(op) shm_object_pool_alloc(op)
 
@@ -99,7 +99,7 @@ parameters:
     obj_offset: the object offset
 return 0 for success, != 0 fail
 */
-int shm_object_pool_free(struct shm_object_pool_context *op, const int64_t obj_offset);
+int shm_object_pool_free(struct shmcache_object_pool_context *op, const int64_t obj_offset);
 
 #define shm_object_pool_push(op, obj_offset) shm_object_pool_free(op, obj_offset)
 
@@ -109,7 +109,7 @@ parameters:
 	op: the object pool
 return object offset, return -1 if empty
 */
-static inline int64_t shm_object_pool_first(struct shm_object_pool_context *op)
+static inline int64_t shm_object_pool_first(struct shmcache_object_pool_context *op)
 {
     if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
         op->index = -1;
@@ -125,7 +125,7 @@ parameters:
 	op: the object pool
 return object offset, return -1 if empty
 */
-static inline int64_t shm_object_pool_next(struct shm_object_pool_context *op)
+static inline int64_t shm_object_pool_next(struct shmcache_object_pool_context *op)
 {
     if (op->index == -1) {
         return -1;

@@ -129,8 +129,15 @@ void *shm_mmap(const int type, const char *filename,
             return NULL;
         }
 
-        result = writeToFile(filename, "for lock", 8);
+        result = writeToFile(filename, "FOR LOCK", 8);
         if (result != 0) {
+            return NULL;
+        }
+        if (chmod(filename, 0666) != 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "chmod filename: %s fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    filename, errno, strerror(errno));
             return NULL;
         }
     }

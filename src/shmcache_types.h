@@ -151,19 +151,30 @@ struct shmcache_segment_array
     int count;
 };
 
-struct shm_object_pool_context {
+struct shmcache_object_pool_context {
     struct shm_object_pool_info *obj_pool_info;
     int64_t *offsets;  //object offset array
     int index;   //for iterator
+};
+
+struct shmcache_value_allocator_context
+{
+    struct shmcache_object_pool_context free;
+    struct shmcache_object_pool_context doing;
+    struct shmcache_object_pool_context done;
 };
 
 struct shmcache_context
 {
     struct shmcache_config config;
     struct shm_memory_info *memory;
-    struct shmcache_segment_info hashtable;
-    struct shmcache_segment_array values;
-    struct shm_object_pool_context hash_op_context;
+    struct {
+        struct shmcache_segment_info hashtable;
+        struct shmcache_segment_array values;
+    } segments;
+
+    struct shmcache_object_pool_context hentry_allocator;
+    struct shmcache_value_allocator_context value_allocator;
 };
 
 struct shmcache_stats

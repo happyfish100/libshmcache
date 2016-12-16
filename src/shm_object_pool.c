@@ -6,15 +6,16 @@
 #include <assert.h>
 #include "shm_object_pool.h"
 
-void shm_object_pool_set(struct shm_object_pool_context *op,
+void shm_object_pool_set(struct shmcache_object_pool_context *op,
         struct shm_object_pool_info *obj_pool_info,
         int64_t *offsets)
 {
     op->obj_pool_info = obj_pool_info;
     op->offsets = offsets;
+    op->index = -1;
 }
 
-void shm_object_pool_init_full(struct shm_object_pool_context *op)
+void shm_object_pool_init_full(struct shmcache_object_pool_context *op)
 {
     int64_t *p;
     int64_t *end;
@@ -29,16 +30,14 @@ void shm_object_pool_init_full(struct shm_object_pool_context *op)
 
     op->obj_pool_info->queue.head = 0;
     op->obj_pool_info->queue.tail = (op->obj_pool_info->queue.capacity - 1);
-    op->index = -1;
 }
 
-void shm_object_pool_init_empty(struct shm_object_pool_context *op)
+void shm_object_pool_init_empty(struct shmcache_object_pool_context *op)
 {
     op->obj_pool_info->queue.head = op->obj_pool_info->queue.tail = 0;
-    op->index = -1;
 }
 
-int shm_object_pool_get_count(struct shm_object_pool_context *op)
+int shm_object_pool_get_count(struct shmcache_object_pool_context *op)
 {
     if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
         return 0;
@@ -50,7 +49,7 @@ int shm_object_pool_get_count(struct shm_object_pool_context *op)
     }
 }
 
-int64_t shm_object_pool_alloc(struct shm_object_pool_context *op)
+int64_t shm_object_pool_alloc(struct shmcache_object_pool_context *op)
 {
     int64_t obj_offset;
     if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
@@ -63,7 +62,7 @@ int64_t shm_object_pool_alloc(struct shm_object_pool_context *op)
     return obj_offset;
 }
 
-int shm_object_pool_free(struct shm_object_pool_context *op, const int64_t obj_offset)
+int shm_object_pool_free(struct shmcache_object_pool_context *op, const int64_t obj_offset)
 {
     int next_index;
     next_index = (op->obj_pool_info->queue.tail + 1) % op->obj_pool_info->queue.capacity;

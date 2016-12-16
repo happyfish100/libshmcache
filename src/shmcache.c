@@ -1,9 +1,13 @@
 //shmcache.c
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
-#include <pthread.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include "logger.h"
+#include "shared_func.h"
 #include "shm_hashtable.h"
 #include "shm_object_pool.h"
 #include "shm_op_wrapper.h"
@@ -161,40 +165,156 @@ static int shmcache_init_pthread_mutex(pthread_mutex_t *plock)
 	return 0;
 }
 
+static void shmcache_set_object_pool_context(struct shmcache_object_pool_context
+        *context, struct shm_object_pool_info *op,
+        const int element_size, const int64_t obj_base_offset,
+        const int queue_capacity, int64_t *queue_base,
+        const bool init_full)
+{
+    op->object.element_size = element_size;
+    op->object.base_offset = obj_base_offset;
+    op->queue.capacity = queue_capacity;
+
+    shm_object_pool_set(context, op, queue_base);
+    if (init_full) {
+        shm_object_pool_init_full(context);
+    } else {
+        shm_object_pool_init_empty(context);
+    }
+}
+
 static int shmcache_do_init(struct shmcache_context *context,
         int64_t *ht_offsets)
 {
 	int result;
-    int64_t *offsets;
+    int64_t *queue_base;
 
     if ((result=shmcache_init_pthread_mutex(&context->memory->lock)) != 0) {
         return result;
     }
 
-    context->memory->hentry_obj_pool.object.element_size =
-        sizeof(struct shm_hash_entry);
-    context->memory->hentry_obj_pool.object.base_offset =
-        ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT];
-    context->memory->hentry_obj_pool.queue.capacity =
-        context->config.max_key_count;
-
-    offsets = (int64_t *)(context->hashtable.base +
+    queue_base = (int64_t *)(context->segments.hashtable.base +
             ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE]);
-    shm_object_pool_set(&context->hash_op_context,
-            &context->memory->hentry_obj_pool, offsets);
-    shm_object_pool_init_full(&context->hash_op_context);
+    shmcache_set_object_pool_context(&context->hentry_allocator,
+            &context->memory->hentry_obj_pool,
+            sizeof(struct shm_hash_entry),
+            ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT],
+            context->config.max_key_count, queue_base, true);
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_FREE]);
+    shmcache_set_object_pool_context(&context->value_allocator.free,
+            &context->memory->value_allocator.free,
+            sizeof(struct shm_striping_allocator),
+            ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT],
+            context->memory->vm_info.striping.count.max,
+            queue_base, false);
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);
+    shmcache_set_object_pool_context(&context->value_allocator.doing,
+            &context->memory->value_allocator.doing,
+            sizeof(struct shm_striping_allocator),
+            ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT],
+            context->memory->vm_info.striping.count.max,
+            queue_base, false);
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DONE]);
+    shmcache_set_object_pool_context(&context->value_allocator.done,
+            &context->memory->value_allocator.done,
+            sizeof(struct shm_striping_allocator),
+            ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT],
+            context->memory->vm_info.striping.count.max,
+            queue_base, false);
 
 	return 0;
+}
+
+static int shmcache_do_lock_init(struct shmcache_context *context,
+        const int ht_capacity, struct shm_value_size_info *segment,
+        struct shm_value_size_info *striping, int64_t *ht_offsets)
+{
+    int result;
+    int fd;
+    mode_t old_mast;
+
+    old_mast = umask(0);
+    fd = open(context->config.filename, O_WRONLY | O_CREAT, 0666);
+    umask(old_mast);
+    if (fd < 0) {
+        result = errno != 0 ? errno : EPERM;
+        logError("file: "__FILE__", line: %d, "
+                "open filename: %s fail, "
+                "errno: %d, error info: %s", __LINE__,
+                context->config.filename, result, strerror(result));
+        return result;
+    }
+
+    if ((result=file_write_lock(fd)) != 0) {
+        close(fd);
+        logError("file: "__FILE__", line: %d, "
+                "lock filename: %s fail, "
+                "errno: %d, error info: %s", __LINE__,
+                context->config.filename, result, strerror(result));
+        return result;
+    }
+
+    do {
+        if (context->memory->status == SHMCACHE_STATUS_NORMAL) {
+            result = -EEXIST;
+            break;
+        }
+
+        context->memory->vm_info.segment = *segment;
+        context->memory->vm_info.striping = *striping;
+
+        shm_ht_init(context, ht_capacity);
+        if ((result=shmcache_do_init(context, ht_offsets)) != 0) {
+            break;
+        }
+        context->memory->status = SHMCACHE_STATUS_NORMAL;
+    } while (0);
+
+    file_unlock(fd);
+    close(fd);
+    return result;
+}
+
+static void shmcache_set_obj_allocators(struct shmcache_context *context,
+        const int64_t *ht_offsets)
+{
+    int64_t *queue_base;
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE]);
+    shm_object_pool_set(&context->hentry_allocator,
+            &context->memory->hentry_obj_pool, queue_base);
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_FREE]);
+    shm_object_pool_set(&context->value_allocator.free,
+            &context->memory->value_allocator.free, queue_base);
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);
+    shm_object_pool_set(&context->value_allocator.doing,
+            &context->memory->value_allocator.doing, queue_base);
+
+    queue_base = (int64_t *)(context->segments.hashtable.base +
+            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DONE]);
+    shm_object_pool_set(&context->value_allocator.done,
+            &context->memory->value_allocator.done, queue_base);
 }
 
 int shmcache_init(struct shmcache_context *context,
 		struct shmcache_config *config)
 {
+	int result;
     int ht_capacity;
     int64_t ht_segment_size;
     struct shm_value_size_info segment;
     struct shm_value_size_info striping;
-	int result;
     int64_t ht_offsets[OFFSETS_COUNT];
 
     memset(context, 0, sizeof(*context));
@@ -203,22 +323,20 @@ int shmcache_init(struct shmcache_context *context,
     ht_segment_size = shmcache_get_ht_segment_size(context,
             &segment, &striping, &ht_capacity, ht_offsets);
   
-    context->hashtable.base = shm_mmap(config->type, config->filename,
-             1, ht_segment_size, &context->hashtable.key);
-    if (context->hashtable.base == NULL) {
+    context->segments.hashtable.base = shm_mmap(config->type, config->filename,
+             1, ht_segment_size, &context->segments.hashtable.key);
+    if (context->segments.hashtable.base == NULL) {
         return ENOMEM;
     }
 
-    context->memory = (struct shm_memory_info *)context->hashtable.base;
+    context->segments.hashtable.size = ht_segment_size;
+    context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
     if (context->memory->status == SHMCACHE_STATUS_INIT) {
-        context->memory->vm_info.segment = segment;
-        context->memory->vm_info.striping = striping;
-
-        shm_ht_init(context, ht_capacity);
-        if ((result=shmcache_do_init(context, ht_offsets)) != 0) {
+        result = shmcache_do_lock_init(context, ht_capacity, &segment,
+                &striping, ht_offsets);
+        if (result == 0 || result != -EEXIST) {
             return result;
         }
-        context->memory->status = SHMCACHE_STATUS_NORMAL;
     } else if (context->memory->status != SHMCACHE_STATUS_NORMAL) {
         logError("file: "__FILE__", line: %d, "
                 "share memory is invalid because status: 0x%08x != 0x%08x",
@@ -226,6 +344,7 @@ int shmcache_init(struct shmcache_context *context,
         return EINVAL;
     }
 
+    shmcache_set_obj_allocators(context, ht_offsets);
     return 0;
 }
 
