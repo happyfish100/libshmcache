@@ -11,6 +11,7 @@
 #include "shm_hashtable.h"
 #include "shm_object_pool.h"
 #include "shm_op_wrapper.h"
+#include "shmopt.h"
 #include "shmcache.h"
 
 #define SHMCACE_MEM_ALIGN(x, align)  (((x) + (align - 1)) & (~(align - 1)))
@@ -273,7 +274,16 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         if ((result=shmcache_do_init(context, ht_offsets)) != 0) {
             break;
         }
+
+        if ((result=shmopt_create_value_segment(context)) != 0) {
+            break;
+        }
         context->memory->status = SHMCACHE_STATUS_NORMAL;
+
+        logInfo("file: "__FILE__", line: %d, pid: %d, "
+                "init share memory first time, "
+                "hashtable segment size: %"PRId64, __LINE__,
+                context->pid, context->segments.hashtable.size);
     } while (0);
 
     file_unlock(fd);
@@ -305,6 +315,10 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
             ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DONE]);
     shm_object_pool_set(&context->value_allocator.done,
             &context->memory->value_allocator.done, queue_base);
+
+    context->value_allocator.allocators = (struct shm_striping_allocator *)
+        context->segments.hashtable.base +
+        ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT];
 }
 
 int shmcache_init(struct shmcache_context *context,
@@ -312,6 +326,7 @@ int shmcache_init(struct shmcache_context *context,
 {
 	int result;
     int ht_capacity;
+    int bytes;
     int64_t ht_segment_size;
     struct shm_value_size_info segment;
     struct shm_value_size_info striping;
@@ -319,22 +334,30 @@ int shmcache_init(struct shmcache_context *context,
 
     memset(context, 0, sizeof(*context));
     context->config = *config;
+    context->pid = getpid();
 
     ht_segment_size = shmcache_get_ht_segment_size(context,
             &segment, &striping, &ht_capacity, ht_offsets);
-  
-    context->segments.hashtable.base = shm_mmap(config->type, config->filename,
-             1, ht_segment_size, &context->segments.hashtable.key);
-    if (context->segments.hashtable.base == NULL) {
-        return ENOMEM;
+    if ((result=shmopt_init_segment(context, &context->segments.hashtable,
+                    1, ht_segment_size)) != 0)
+    {
+        return result;
     }
 
-    context->segments.hashtable.size = ht_segment_size;
+    bytes = sizeof(struct shmcache_segment_info) * segment.count.max;
+    context->segments.values.items = (struct shmcache_segment_info *)malloc(bytes);
+    if (context->segments.values.items == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail", __LINE__, bytes);
+        return ENOMEM;
+    }
+    memset(context->segments.values.items, 0, bytes);
+
     context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
     if (context->memory->status == SHMCACHE_STATUS_INIT) {
         result = shmcache_do_lock_init(context, ht_capacity, &segment,
                 &striping, ht_offsets);
-        if (result == 0 || result != -EEXIST) {
+        if (!(result == 0 || result == -EEXIST)) {
             return result;
         }
     } else if (context->memory->status != SHMCACHE_STATUS_NORMAL) {

@@ -139,16 +139,9 @@ struct shmcache_buffer
 
 struct shmcache_segment_info
 {
-    key_t key; //shm key
-    int size;  //memory size
+    key_t key;     //shm key
+    int64_t size;  //memory size
     char *base;
-};
-
-struct shmcache_segment_array
-{
-    struct shmcache_segment_info *segments;
-    int alloc_size;
-    int count;
 };
 
 struct shmcache_object_pool_context {
@@ -162,15 +155,20 @@ struct shmcache_value_allocator_context
     struct shmcache_object_pool_context free;
     struct shmcache_object_pool_context doing;
     struct shmcache_object_pool_context done;
+    struct shm_striping_allocator *allocators;  //base address
 };
 
 struct shmcache_context
 {
+    pid_t pid;
     struct shmcache_config config;
     struct shm_memory_info *memory;
     struct {
         struct shmcache_segment_info hashtable;
-        struct shmcache_segment_array values;
+        struct {
+            int count;
+            struct shmcache_segment_info *items;
+        } values;
     } segments;
 
     struct shmcache_object_pool_context hentry_allocator;
