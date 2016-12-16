@@ -44,8 +44,9 @@ struct shm_segment_striping_pair {
 
 struct shm_value
 {
-    int64_t offset; //segment offset
-    int length;
+    int64_t offset; //value segment offset
+    int size;       //alloc size
+    int length;     //value length
     struct shm_segment_striping_pair index;
 };
 
@@ -152,10 +153,10 @@ struct shmcache_object_pool_context {
 
 struct shmcache_value_allocator_context
 {
-    struct shmcache_object_pool_context free;
-    struct shmcache_object_pool_context doing;
-    struct shmcache_object_pool_context done;
-    struct shm_striping_allocator *allocators;  //base address
+    struct shmcache_object_pool_context free;  //free queue
+    struct shmcache_object_pool_context doing; //doing queue
+    struct shmcache_object_pool_context done;  //done queue
+    struct shm_striping_allocator *allocators; //base address
 };
 
 struct shmcache_context

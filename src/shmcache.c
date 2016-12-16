@@ -317,8 +317,8 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
             &context->memory->value_allocator.done, queue_base);
 
     context->value_allocator.allocators = (struct shm_striping_allocator *)
-        context->segments.hashtable.base +
-        ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT];
+        (context->segments.hashtable.base +
+        ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT]);
 }
 
 int shmcache_init(struct shmcache_context *context,

@@ -59,8 +59,11 @@ parameters:
     size: alloc bytes
 return none
 */
-void shm_striping_allocator_free(struct shm_striping_allocator *allocator,
-        const int size);
+static inline void shm_striping_allocator_free(struct shm_striping_allocator
+        *allocator, const int size)
+{
+    allocator->size.used -= size;
+}
 
 #ifdef __cplusplus
 }

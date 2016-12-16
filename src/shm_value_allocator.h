@@ -23,33 +23,24 @@ extern "C" {
 #endif
 
 /**
-allocator init
-parameters:
-	allocator: the allocator pointer
-    context: the context
-return error no, 0 for success, != 0 fail
-*/
-void shm_value_allocator_init(struct shmcache_value_allocator_context *acontext);
-
-/**
 alloc memory from the allocator
 parameters:
-	allocator: the allocator pointer
+	allocator: the shm context
     size: alloc bytes
     value: return the value
 return error no, 0 for success, != 0 fail
 */
-int shm_value_allocator_alloc(struct shmcache_value_allocator_context *acontext,
+int shm_value_allocator_alloc(struct shmcache_context *context,
         const int size, struct shm_value *value);
 
 /**
 free memory to the allocator
 parameters:
-	allocator: the allocator pointer
+	allocator: the shm context
     value:  the value to free
 return error no, 0 for success, != 0 fail
 */
-int shm_value_allocator_free(struct shmcache_value_allocator_context *acontext,
+int shm_value_allocator_free(struct shmcache_context *context,
         struct shm_value *value);
 
 #ifdef __cplusplus
