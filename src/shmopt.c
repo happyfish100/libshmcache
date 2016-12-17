@@ -83,9 +83,9 @@ int shmopt_create_value_segment(struct shmcache_context *context)
         shm_striping_allocator_init(allocator, &index_pair,
                 striping_offset, context->memory->vm_info.striping.size);
 
-        //add to free queue
+        //add to doing queue
         allocator_offset = (char *)allocator - context->segments.hashtable.base;
-        shm_object_pool_push(&context->value_allocator.free, allocator_offset);
+        shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
 
         striping_offset += context->memory->vm_info.striping.size;
     }

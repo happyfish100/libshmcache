@@ -62,7 +62,8 @@ int64_t shm_object_pool_alloc(struct shmcache_object_pool_context *op)
     return obj_offset;
 }
 
-int shm_object_pool_free(struct shmcache_object_pool_context *op, const int64_t obj_offset)
+int shm_object_pool_free(struct shmcache_object_pool_context *op,
+        const int64_t obj_offset)
 {
     int next_index;
     next_index = (op->obj_pool_info->queue.tail + 1) % op->obj_pool_info->queue.capacity;

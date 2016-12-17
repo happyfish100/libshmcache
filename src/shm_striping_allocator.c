@@ -1,6 +1,7 @@
 //shm_striping_allocator.c
 
 #include <errno.h>
+#include "sched_thread.h"
 #include "shm_striping_allocator.h"
 
 void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
@@ -17,6 +18,7 @@ void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
 
 void shm_striping_allocator_reset(struct shm_striping_allocator *allocator)
 {
+    allocator->first_alloc_time = 0;
     allocator->size.used = 0;
     allocator->offset.free = allocator->offset.base;
 }
@@ -29,6 +31,9 @@ int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
         return -1;
     }
 
+    if (allocator->first_alloc_time == 0) {
+        allocator->first_alloc_time = get_current_time();
+    }
     ptr_offset = allocator->offset.free;
     allocator->offset.free += size;
     allocator->size.used += size;

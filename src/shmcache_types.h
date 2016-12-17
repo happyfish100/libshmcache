@@ -35,6 +35,12 @@ struct shmcache_config
     int max_key_count;
     int max_value_size;
     int type;  //shm or mmap
+
+    /* avg. key TTL threshold for recycling memory
+     * unit: second
+     * <= 0 for never recycle memory until reach memory limit (max_memory)
+     */
+    int avg_key_ttl;
 };
 
 struct shm_segment_striping_pair {
@@ -50,16 +56,20 @@ struct shm_value
     struct shm_segment_striping_pair index;
 };
 
+struct shm_list {
+    int64_t prev;
+    int64_t next;
+};
+
 struct shm_hash_entry
 {
+    struct shm_list list;  //for recycle, must be first
+
     char key[SHMCACHE_MAX_KEY_SIZE];
     int key_len;
     time_t expires;
     struct shm_value value;
-    struct {
-        int64_t hash;  //for hashtable
-        int64_t list;  //for list
-    } next_offset;
+    int64_t ht_next;  //for hashtable
 };
 
 struct shm_ring_queue {
@@ -78,7 +88,7 @@ struct shm_object_pool_info {
 
 struct shm_hashtable
 {
-    int64_t list_head; //for iterator
+    struct shm_list head; //for recycle
     int capacity;
     int count;
     int64_t buckets[0]; //entry offset
@@ -86,6 +96,7 @@ struct shm_hashtable
 
 struct shm_striping_allocator
 {
+    time_t first_alloc_time;  //record the timestamp of fist allocate
     struct shm_segment_striping_pair index;
     struct {
         int total;
@@ -125,7 +136,10 @@ struct shm_memory_info
 {
     //int version;
     int status;
-    pthread_mutex_t lock;
+    struct {
+        pid_t pid;
+        pthread_mutex_t mutex;
+    } lock;
     struct shm_value_memory_info vm_info;  //value memory info
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
@@ -153,10 +167,14 @@ struct shmcache_object_pool_context {
 
 struct shmcache_value_allocator_context
 {
-    struct shmcache_object_pool_context free;  //free queue
     struct shmcache_object_pool_context doing; //doing queue
     struct shmcache_object_pool_context done;  //done queue
     struct shm_striping_allocator *allocators; //base address
+};
+
+struct shmcache_list {
+    char *base;
+    struct shm_list *head;
 };
 
 struct shmcache_context
@@ -174,6 +192,7 @@ struct shmcache_context
 
     struct shmcache_object_pool_context hentry_allocator;
     struct shmcache_value_allocator_context value_allocator;
+    struct shmcache_list list;   //for value recycle
 };
 
 struct shmcache_stats

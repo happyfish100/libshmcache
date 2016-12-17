@@ -20,7 +20,7 @@ void shm_ht_init(struct shmcache_context *context, const int capacity)
 {
     context->memory->hashtable.capacity = capacity;
     context->memory->hashtable.count = 0;
-    context->memory->hashtable.list_head = 0;
+    //context->memory->hashtable.list_head = 0;
 }
 
 int shm_ht_set(struct shmcache_context *context,

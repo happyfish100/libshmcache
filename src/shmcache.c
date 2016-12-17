@@ -20,11 +20,10 @@
 #define OFFSETS_INDEX_HT_BUCKETS            0
 #define OFFSETS_INDEX_HT_POOL_QUEUE         1
 #define OFFSETS_INDEX_HT_POOL_OBJECT        2
-#define OFFSETS_INDEX_VA_POOL_QUEUE_FREE    3
-#define OFFSETS_INDEX_VA_POOL_QUEUE_DOING   4
-#define OFFSETS_INDEX_VA_POOL_QUEUE_DONE    5
-#define OFFSETS_INDEX_VA_POOL_OBJECT        6
-#define OFFSETS_COUNT                       7
+#define OFFSETS_INDEX_VA_POOL_QUEUE_DOING   3
+#define OFFSETS_INDEX_VA_POOL_QUEUE_DONE    4
+#define OFFSETS_INDEX_VA_POOL_OBJECT        5
+#define OFFSETS_COUNT                       6
 
 static void get_value_segment_count_size(struct shmcache_config *config,
         struct shm_value_size_info *segment)
@@ -101,9 +100,6 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
 
     va_pool_queue_memory_size = shm_object_pool_get_queue_memory_size(
             striping->count.max);
-
-    ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_FREE] = total_size;
-    total_size += va_pool_queue_memory_size;
 
     ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING] = total_size;
     total_size += va_pool_queue_memory_size;
@@ -190,7 +186,7 @@ static int shmcache_do_init(struct shmcache_context *context,
 	int result;
     int64_t *queue_base;
 
-    if ((result=shmcache_init_pthread_mutex(&context->memory->lock)) != 0) {
+    if ((result=shmcache_init_pthread_mutex(&context->memory->lock.mutex)) != 0) {
         return result;
     }
 
@@ -201,15 +197,6 @@ static int shmcache_do_init(struct shmcache_context *context,
             sizeof(struct shm_hash_entry),
             ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT],
             context->config.max_key_count, queue_base, true);
-
-    queue_base = (int64_t *)(context->segments.hashtable.base +
-            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_FREE]);
-    shmcache_set_object_pool_context(&context->value_allocator.free,
-            &context->memory->value_allocator.free,
-            sizeof(struct shm_striping_allocator),
-            ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT],
-            context->memory->vm_info.striping.count.max,
-            queue_base, false);
 
     queue_base = (int64_t *)(context->segments.hashtable.base +
             ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);
@@ -300,11 +287,6 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
             ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE]);
     shm_object_pool_set(&context->hentry_allocator,
             &context->memory->hentry_obj_pool, queue_base);
-
-    queue_base = (int64_t *)(context->segments.hashtable.base +
-            ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_FREE]);
-    shm_object_pool_set(&context->value_allocator.free,
-            &context->memory->value_allocator.free, queue_base);
 
     queue_base = (int64_t *)(context->segments.hashtable.base +
             ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);

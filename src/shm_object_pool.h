@@ -99,9 +99,21 @@ parameters:
     obj_offset: the object offset
 return 0 for success, != 0 fail
 */
-int shm_object_pool_free(struct shmcache_object_pool_context *op, const int64_t obj_offset);
+int shm_object_pool_free(struct shmcache_object_pool_context *op,
+        const int64_t obj_offset);
 
 #define shm_object_pool_push(op, obj_offset) shm_object_pool_free(op, obj_offset)
+
+/**
+is object pool empty
+parameters:
+	op: the object pool
+return return true if empty, otherwise false
+*/
+static inline bool shm_object_pool_is_empty(struct shmcache_object_pool_context *op)
+{
+    return (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail);
+}
 
 /**
 get first object
