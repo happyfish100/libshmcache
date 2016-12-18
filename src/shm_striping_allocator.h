@@ -65,6 +65,12 @@ static inline void shm_striping_allocator_free(struct shm_striping_allocator
     allocator->size.used -= size;
 }
 
+static inline int64_t shm_striping_allocator_free_size(struct shm_striping_allocator
+        *allocator)
+{
+    return allocator->offset.end - allocator->offset.free;
+}
+
 #ifdef __cplusplus
 }
 #endif

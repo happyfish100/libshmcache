@@ -154,6 +154,35 @@ static inline int64_t shm_object_pool_next(struct shmcache_object_pool_context *
     }
 }
 
+/**
+remove the object, if op->index is -1, remove the tail
+parameters:
+	op: the object pool
+return the removed object offset, return -1 if empty
+*/
+static inline int64_t shm_object_pool_remove(struct shmcache_object_pool_context *op)
+{
+    int index;
+    int previous;
+    int current;
+
+    if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
+        return -1;
+    }
+
+    index = (op->index >= 0) ? op->index : op->obj_pool_info->queue.tail;
+    current = index;
+    while (current != op->obj_pool_info->queue.head) {
+        previous = (current - 1) % op->obj_pool_info->queue.capacity;
+        op->offsets[current] = op->offsets[previous];
+        current = previous;
+    }
+
+    op->obj_pool_info->queue.head = (op->obj_pool_info->queue.head + 1) %
+        op->obj_pool_info->queue.capacity;
+    return op->offsets[index];
+}
+
 #ifdef __cplusplus
 }
 #endif

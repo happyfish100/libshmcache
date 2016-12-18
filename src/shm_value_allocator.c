@@ -34,6 +34,14 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
             return 0;
         }
 
+        if ((shm_striping_allocator_free_size(allocator) <= context->config.
+                va_policy.discard_memory_size) || (allocator->fail_times >
+                context->config.va_policy.max_fail_times))
+        {
+            allocator_offset = shm_object_pool_remove(&context->value_allocator.doing);
+            shm_object_pool_push(&context->value_allocator.done, allocator_offset);
+        }
+
         allocator_offset = shm_object_pool_next(&context->value_allocator.doing);
     }
 
@@ -51,6 +59,7 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
     allocator = (struct shm_striping_allocator *)(context->segments.
             hashtable.base + allocator_offset);
 
+    shm_striping_allocator_reset(allocator);
     shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
 
     return 0;
@@ -82,8 +91,8 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
         if (allocator_offset > 0) {
             allocator = (struct shm_striping_allocator *)(context->segments.
                     hashtable.base + allocator_offset);
-            recycle = (context->config.avg_key_ttl > 0 && get_current_time() -
-                    allocator->first_alloc_time >= context->config.avg_key_ttl);
+            recycle = (context->config.va_policy.avg_key_ttl > 0 && get_current_time() -
+                    allocator->first_alloc_time >= context->config.va_policy.avg_key_ttl);
         } else {
             recycle = false;
         }
