@@ -22,14 +22,32 @@
 extern "C" {
 #endif
 
+#define SHM_LIST_PTR(list, offset) \
+    ((struct shm_list *)(list->base + offset))
+
+/**
+list set
+parameters:
+	list: the list
+return none
+*/
+static inline void shm_list_set(struct shmcache_list *list,
+        char *base, struct shm_list *head)
+{
+    list->base = base;
+    list->head.ptr = head;
+    list->head.offset = (char *)head - list->base;
+}
+
 /**
 init list to empty
 parameters:
 	list: the list
-return error no, 0 for success, != 0 fail
+return none
 */
 static inline void shm_list_init(struct shmcache_list *list)
 {
+    list->head.ptr->prev = list->head.ptr->next = list->head.offset;
 }
 
 /**
@@ -41,6 +59,13 @@ return none
 */
 static inline void shm_list_add_tail(struct shmcache_list *list, int64_t obj_offset)
 {
+    struct shm_list *node;
+
+    node = SHM_LIST_PTR(list, obj_offset);
+    SHM_LIST_PTR(list, list->head.ptr->prev)->next = obj_offset;
+    node->prev = list->head.ptr->prev;
+    node->next = list->head.offset;
+    list->head.ptr->prev = obj_offset;
 }
 
 /**
@@ -52,6 +77,12 @@ return none
 */
 static inline void shm_list_remove(struct shmcache_list *list, int64_t obj_offset)
 {
+    struct shm_list *node;
+
+    node = SHM_LIST_PTR(list, obj_offset);
+    SHM_LIST_PTR(list, node->prev)->next = node->next;
+    SHM_LIST_PTR(list, node->next)->prev = node->prev;
+    node->prev = node->next = obj_offset;
 }
 
 #ifdef __cplusplus

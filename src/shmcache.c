@@ -12,6 +12,7 @@
 #include "shm_object_pool.h"
 #include "shm_op_wrapper.h"
 #include "shmopt.h"
+#include "shm_list.h"
 #include "shmcache.h"
 
 #define SHMCACE_MEM_ALIGN(x, align)  (((x) + (align - 1)) & (~(align - 1)))
@@ -258,6 +259,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         context->memory->vm_info.striping = *striping;
 
         shm_ht_init(context, ht_capacity);
+        shm_list_init(&context->list);
         if ((result=shmcache_do_init(context, ht_offsets)) != 0) {
             break;
         }
@@ -336,6 +338,9 @@ int shmcache_init(struct shmcache_context *context,
     memset(context->segments.values.items, 0, bytes);
 
     context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
+    shm_list_set(&context->list, context->segments.hashtable.base,
+            &context->memory->hashtable.head);
+
     if (context->memory->status == SHMCACHE_STATUS_INIT) {
         result = shmcache_do_lock_init(context, ht_capacity, &segment,
                 &striping, ht_offsets);

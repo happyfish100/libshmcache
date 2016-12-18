@@ -17,6 +17,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/shm.h>
+#include "hash.h"
 #include "common_define.h"
 
 #define SHMCACHE_MAX_KEY_SIZE  64
@@ -52,6 +53,8 @@ struct shmcache_config {
          */
         int max_fail_times;
     } va_policy;   //value allocator policy
+
+    HashFunc hash_func;
 };
 
 struct shm_segment_striping_pair {
@@ -175,7 +178,10 @@ struct shmcache_value_allocator_context {
 
 struct shmcache_list {
     char *base;
-    struct shm_list *head;
+    struct {
+        struct shm_list *ptr;
+        int64_t offset;
+    } head;
 };
 
 struct shmcache_context {
