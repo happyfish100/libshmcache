@@ -28,6 +28,8 @@
 #define SHMCACHE_TYPE_SHM    1
 #define SHMCACHE_TYPE_MMAP   2
 
+#define SHMCACHE_NEVER_EXPIRED_TTL  0
+
 struct shmcache_config {
     char filename[MAX_PATH_SIZE];
     int64_t max_memory;
@@ -53,6 +55,11 @@ struct shmcache_config {
          */
         int max_fail_times;
     } va_policy;   //value allocator policy
+
+    struct {
+        int trylock_interval_us;
+        int detect_deadlock_interval_ms;
+    } lock_policy;
 
     HashFunc hash_func;
 };
@@ -140,13 +147,15 @@ struct shm_value_memory_info {
     struct shm_value_size_info striping;
 };
 
+struct shm_lock {
+    pid_t pid;
+    pthread_mutex_t mutex;
+};
+
 struct shm_memory_info {
     //int version;
     int status;
-    struct {
-        pid_t pid;
-        pthread_mutex_t mutex;
-    } lock;
+    struct shm_lock lock;
     struct shm_value_memory_info vm_info;  //value memory info
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
@@ -186,6 +195,7 @@ struct shmcache_list {
 
 struct shmcache_context {
     pid_t pid;
+    int detect_deadlock_clocks;
     struct shmcache_config config;
     struct shm_memory_info *memory;
     struct {

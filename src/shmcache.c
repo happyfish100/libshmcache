@@ -13,6 +13,7 @@
 #include "shm_op_wrapper.h"
 #include "shmopt.h"
 #include "shm_list.h"
+#include "shm_lock.h"
 #include "shmcache.h"
 
 #define SHMCACE_MEM_ALIGN(x, align)  (((x) + (align - 1)) & (~(align - 1)))
@@ -115,54 +116,6 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     return total_size;
 }
 
-static int shmcache_init_pthread_mutex(pthread_mutex_t *plock)
-{
-	pthread_mutexattr_t mat;
-	int result;
-
-	if ((result=pthread_mutexattr_init(&mat)) != 0) {
-		logError("file: "__FILE__", line: %d, "
-			"call pthread_mutexattr_init fail, "
-			"errno: %d, error info: %s",
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-	if ((result=pthread_mutexattr_setpshared(&mat,
-			PTHREAD_PROCESS_SHARED)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"call pthread_mutexattr_setpshared fail, "
-			"errno: %d, error info: %s",
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-	if ((result=pthread_mutexattr_settype(&mat,
-			PTHREAD_MUTEX_ERRORCHECK)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"call pthread_mutexattr_settype fail, "
-			"errno: %d, error info: %s",
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-	if ((result=pthread_mutex_init(plock, &mat)) != 0) {
-		logError("file: "__FILE__", line: %d, "
-			"call pthread_mutex_init fail, "
-			"errno: %d, error info: %s",
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-	if ((result=pthread_mutexattr_destroy(&mat)) != 0) {
-		logError("file: "__FILE__", line: %d, "
-			"call thread_mutexattr_destroy fail, "
-			"errno: %d, error info: %s",
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-
-	return 0;
-}
-
 static void shmcache_set_object_pool_context(struct shmcache_object_pool_context
         *context, struct shm_object_pool_info *op,
         const int element_size, const int64_t obj_base_offset,
@@ -187,7 +140,7 @@ static int shmcache_do_init(struct shmcache_context *context,
 	int result;
     int64_t *queue_base;
 
-    if ((result=shmcache_init_pthread_mutex(&context->memory->lock.mutex)) != 0) {
+    if ((result=shm_lock_init(context)) != 0) {
         return result;
     }
 
