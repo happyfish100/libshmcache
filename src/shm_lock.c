@@ -1,0 +1,108 @@
+//shm_lock.c
+
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "logger.h"
+#include "shared_func.h"
+#include "shm_lock.h"
+
+int shm_lock_init(struct shmcache_context *context)
+{
+	pthread_mutexattr_t mat;
+	int result;
+
+	if ((result=pthread_mutexattr_init(&mat)) != 0) {
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutexattr_init fail, "
+			"errno: %d, error info: %s",
+			__LINE__, result, strerror(result));
+		return result;
+	}
+	if ((result=pthread_mutexattr_setpshared(&mat,
+			PTHREAD_PROCESS_SHARED)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutexattr_setpshared fail, "
+			"errno: %d, error info: %s",
+			__LINE__, result, strerror(result));
+		return result;
+	}
+	if ((result=pthread_mutexattr_settype(&mat,
+			PTHREAD_MUTEX_NORMAL)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutexattr_settype fail, "
+			"errno: %d, error info: %s",
+			__LINE__, result, strerror(result));
+		return result;
+	}
+	if ((result=pthread_mutex_init(&context->memory->lock.mutex,
+                    &mat)) != 0)
+    {
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutex_init fail, "
+			"errno: %d, error info: %s",
+			__LINE__, result, strerror(result));
+		return result;
+	}
+	pthread_mutexattr_destroy(&mat);
+
+    context->memory->lock.pid = 0;
+	return 0;
+}
+
+static int shm_detect_deadlock(struct shmcache_context *context,
+        const pid_t last_pid)
+{
+    return 0;
+}
+
+int shm_lock(struct shmcache_context *context)
+{
+    int result;
+    pid_t pid;
+    int clocks;
+
+    clocks = 0;
+    while ((result=pthread_mutex_trylock(&context->memory->lock.mutex)) == EBUSY) {
+        usleep(context->config.lock_policy.trylock_interval_us);
+
+        ++clocks;
+        if (clocks > context->detect_deadlock_clocks &&
+                (pid=context->memory->lock.pid) > 0)
+        {
+            clocks =  0;
+            if (kill(pid, 0) != 0) {
+                if (errno == ESRCH || errno == ENOENT) {
+                    shm_detect_deadlock(context, pid);
+                }
+            }
+        }
+    }
+    if (result == 0) {
+        context->memory->lock.pid = context->pid;
+    } else {
+        logError("file: "__FILE__", line: %d, "
+                "call pthread_mutex_trylock fail, "
+                "errno: %d, error info: %s",
+                __LINE__, result, strerror(result));
+    }
+    return result;
+}
+
+int shm_unlock(struct shmcache_context *context)
+{
+    int result;
+
+    context->memory->lock.pid = 0;
+    if ((result=pthread_mutex_unlock(&context->memory->lock.mutex)) != 0) {
+        logError("file: "__FILE__", line: %d, "
+                "call pthread_mutex_unlock fail, "
+                "errno: %d, error info: %s",
+                __LINE__, result, strerror(result));
+    }
+    return result;
+}
+
