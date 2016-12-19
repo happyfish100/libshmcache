@@ -30,9 +30,10 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
     struct shm_striping_allocator *allocator;
 
     allocator_offset = shm_object_pool_first(&context->value_allocator.doing);
-    while (allocator_offset > 0) {
-        logInfo("allocator_offset: %"PRId64, allocator_offset);
 
+    logInfo("function: %s, allocator_offset: %"PRId64, __FUNCTION__, allocator_offset);
+
+    while (allocator_offset > 0) {
         allocator = (struct shm_striping_allocator *)(context->segments.
                 hashtable.base + allocator_offset);
         if (shm_value_striping_alloc(allocator, size, value) == 0) {
@@ -72,7 +73,7 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
 
     while ((entry_offset=shm_list_first(&context->list)) > 0) {
         logInfo("file: "__FILE__", line: %d, "
-                "entry_offset: %"PRId64, __LINE__);
+                "entry_offset: %"PRId64, __LINE__, entry_offset);
 
         entry = HT_ENTRY_PTR(context, entry_offset);
         index = entry->value.index.striping;
@@ -146,7 +147,7 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
     }
     if ((result=shm_value_allocator_do_alloc(context, size, value)) != 0) {
             logError("file: "__FILE__", line: %d, "
-                    "malloc %d bytes from shm fail", __LINE__);
+                    "malloc %d bytes from shm fail", __LINE__, size);
     }
     return result;
 }

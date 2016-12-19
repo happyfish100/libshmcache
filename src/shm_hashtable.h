@@ -86,6 +86,11 @@ return error no, 0 for success, != 0 for fail
 int shm_ht_delete(struct shmcache_context *context,
         const struct shmcache_buffer *key);
 
+static inline int shm_ht_count(struct shmcache_context *context)
+{
+    return context->memory->hashtable.count;
+}
+
 #ifdef __cplusplus
 }
 #endif

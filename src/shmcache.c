@@ -86,22 +86,27 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     get_value_striping_count_size(context->config.max_value_size,
             segment, striping);
 
-    *ht_capacity = shm_ht_get_capacity(context->config.max_key_count);
+    *ht_capacity = shm_ht_get_capacity(context->config.max_key_count + 1);
     total_size = sizeof(struct shm_memory_info);
+
+    logInfo("ht capacity: %d, sizeof(struct shm_memory_info): %d, "
+            "context->config.max_key_count: %d",
+            *ht_capacity, (int)sizeof(struct shm_memory_info),
+            context->config.max_key_count);
 
     ht_offsets[OFFSETS_INDEX_HT_BUCKETS] = total_size;
     total_size += shm_ht_get_memory_size(*ht_capacity);
 
     ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE] = total_size;
     total_size += shm_object_pool_get_queue_memory_size(
-            context->config.max_key_count);
+            context->config.max_key_count + 1);
 
     ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT] = total_size;
     total_size += shm_object_pool_get_object_memory_size(
             sizeof(struct shm_hash_entry), context->config.max_key_count);
 
     va_pool_queue_memory_size = shm_object_pool_get_queue_memory_size(
-            striping->count.max);
+            striping->count.max + 1);
 
     ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING] = total_size;
     total_size += va_pool_queue_memory_size;
@@ -294,7 +299,14 @@ int shmcache_init(struct shmcache_context *context,
             lock_policy.detect_deadlock_interval_ms / context->config.
             lock_policy.trylock_interval_us;
     }
-    return shmopt_open_value_segments(context);
+    result = shmopt_open_value_segments(context);
+
+    logInfo("file: "__FILE__", line: %d, "
+            "doing count: %d, done count: %d", __LINE__,
+            shm_object_pool_get_count(&context->value_allocator.doing),
+            shm_object_pool_get_count(&context->value_allocator.done));
+
+    return result;
 }
 
 void shmcache_destroy(struct shmcache_context *context)

@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <pthread.h>
-#include <assert.h>
+#include "logger.h"
 #include "shm_object_pool.h"
 
 void shm_object_pool_set(struct shmcache_object_pool_context *op,
@@ -29,12 +29,20 @@ void shm_object_pool_init_full(struct shmcache_object_pool_context *op)
     }
 
     op->obj_pool_info->queue.head = 0;
-    op->obj_pool_info->queue.tail = (op->obj_pool_info->queue.capacity - 1);
+    op->obj_pool_info->queue.tail = op->obj_pool_info->queue.capacity;
+
+    logInfo("function: %s, op: %p, head: %d, tail: %d",
+            __FUNCTION__, op, op->obj_pool_info->queue.head,
+            op->obj_pool_info->queue.tail);
 }
 
 void shm_object_pool_init_empty(struct shmcache_object_pool_context *op)
 {
     op->obj_pool_info->queue.head = op->obj_pool_info->queue.tail = 0;
+
+    logInfo("function: %s, op: %p, head: %d, tail: %d",
+            __FUNCTION__, op, op->obj_pool_info->queue.head,
+            op->obj_pool_info->queue.tail);
 }
 
 int shm_object_pool_get_count(struct shmcache_object_pool_context *op)
@@ -42,10 +50,10 @@ int shm_object_pool_get_count(struct shmcache_object_pool_context *op)
     if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
         return 0;
     } else if (op->obj_pool_info->queue.head < op->obj_pool_info->queue.tail) {
-        return op->obj_pool_info->queue.tail - op->obj_pool_info->queue.head + 1;
+        return op->obj_pool_info->queue.tail - op->obj_pool_info->queue.head;
     } else {
         return (op->obj_pool_info->queue.capacity - op->obj_pool_info->queue.head)
-            +  (op->obj_pool_info->queue.tail + 1);
+            +  op->obj_pool_info->queue.tail;
     }
 }
 
@@ -59,19 +67,27 @@ int64_t shm_object_pool_alloc(struct shmcache_object_pool_context *op)
     obj_offset = op->offsets[op->obj_pool_info->queue.head];
     op->obj_pool_info->queue.head = (op->obj_pool_info->queue.head + 1) %
         op->obj_pool_info->queue.capacity;
+
+    logInfo("function: %s, op: %p, head: %d, obj_offset: %"PRId64,
+            __FUNCTION__, op, op->obj_pool_info->queue.head, obj_offset);
     return obj_offset;
 }
 
 int shm_object_pool_free(struct shmcache_object_pool_context *op,
         const int64_t obj_offset)
 {
-    int next_index;
-    next_index = (op->obj_pool_info->queue.tail + 1) % op->obj_pool_info->queue.capacity;
-    if (next_index == op->obj_pool_info->queue.head) {
+    int next_tail;
+    next_tail = (op->obj_pool_info->queue.tail + 1) %
+        op->obj_pool_info->queue.capacity;
+    if (next_tail == op->obj_pool_info->queue.head) {
         return ENOSPC;
     }
-    op->offsets[next_index] = obj_offset;
-    op->obj_pool_info->queue.tail = next_index;
+    op->offsets[op->obj_pool_info->queue.tail] = obj_offset;
+    op->obj_pool_info->queue.tail = next_tail;
+
+    logInfo("function: %s, op: %p, tail: %d, obj_offset: %"PRId64,
+            __FUNCTION__, op, next_tail, obj_offset);
+
     return 0;
 }
 
@@ -81,11 +97,18 @@ int64_t shm_object_pool_remove(struct shmcache_object_pool_context *op)
     int previous;
     int current;
 
-    if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
+    if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail
+            || op->index < 0)
+    {
         return -1;
     }
 
-    index = (op->index >= 0) ? op->index : op->obj_pool_info->queue.tail;
+    if (op->index == op->obj_pool_info->queue.tail) {
+        index = (op->obj_pool_info->queue.tail - 1) %
+            op->obj_pool_info->queue.capacity;
+    } else {
+        index = op->index;
+    }
     current = index;
     while (current != op->obj_pool_info->queue.head) {
         previous = (current - 1) % op->obj_pool_info->queue.capacity;

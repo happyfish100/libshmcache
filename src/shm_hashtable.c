@@ -140,6 +140,7 @@ int shm_ht_set(struct shmcache_context *context,
     } else {
         context->memory->hashtable.buckets[index] = entry_offset;
     }
+    context->memory->hashtable.count++;
 
     return 0;
 }
@@ -197,6 +198,7 @@ int shm_ht_delete(struct shmcache_context *context,
             shm_value_allocator_free(context, &entry->value);
             shm_list_remove(&context->list, entry_offset);
             shm_object_pool_free(&context->hentry_allocator, entry_offset);
+            context->memory->hashtable.count--;
             result = 0;
             break;
         }

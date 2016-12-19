@@ -76,6 +76,14 @@ int shmopt_create_value_segment(struct shmcache_context *context)
     index_pair.segment = segment_index;
     striping_count = context->memory->vm_info.segment.size /
         context->memory->vm_info.striping.size;
+
+    logInfo("file: "__FILE__", line: %d, "
+            "striping_count: %d, striping.count.current: %d, "
+            "context->memory->vm_info.segment.size: %ld, "
+            "context->memory->vm_info.striping.size: %ld",
+            __LINE__, striping_count, context->memory->vm_info.striping.count.current,
+            context->memory->vm_info.segment.size, context->memory->vm_info.striping.size);
+
     for (i=0; i<striping_count; i++) {
         striping_index = context->memory->vm_info.striping.count.current++;
         allocator = context->value_allocator.allocators + striping_index;
@@ -86,6 +94,7 @@ int shmopt_create_value_segment(struct shmcache_context *context)
 
         //add to doing queue
         allocator_offset = (char *)allocator - context->segments.hashtable.base;
+        logInfo("function: %s, push allocator_offset: %"PRId64, __FUNCTION__, allocator_offset);
         allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
         shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
 

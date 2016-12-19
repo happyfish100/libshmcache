@@ -142,15 +142,16 @@ static inline int64_t shm_object_pool_next(struct shmcache_object_pool_context *
     if (op->index == -1) {
         return -1;
     }
+    if (op->index == op->obj_pool_info->queue.tail) {
+        op->index = -1;
+        return -1;
+    }
 
     op->index = (op->index + 1) % op->obj_pool_info->queue.capacity;
-    if (op->index == op->obj_pool_info->queue.tail) {
-        int64_t obj_offset;
-        obj_offset = op->offsets[op->index];
-        op->index = -1;
-        return obj_offset;
-    } else {
+    if (op->index != op->obj_pool_info->queue.tail) {
         return op->offsets[op->index];
+    } else {
+        return -1;
     }
 }
 
