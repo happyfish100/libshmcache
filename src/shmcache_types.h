@@ -171,6 +171,7 @@ struct shmcache_buffer {
 };
 
 struct shmcache_segment_info {
+    int proj_id;
     key_t key;     //shm key
     int64_t size;  //memory size
     char *base;
@@ -198,6 +199,7 @@ struct shmcache_list {
 
 struct shmcache_context {
     pid_t pid;
+    int lock_fd;    //for file lock
     int detect_deadlock_clocks;
     struct shmcache_config config;
     struct shm_memory_info *memory;

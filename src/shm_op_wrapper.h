@@ -41,8 +41,21 @@ parameters:
 	type: mmap or shm
     addr: the address to munmap
     size: the share memory size
+return: errno, 0 for success, != 0 fail
 */
 int shm_munmap(const int type, void *addr, const int64_t size);
+
+/**
+remove shm
+parameters:
+	type: mmap or shm
+	proj_id: the project id to generate key
+    size: the share memory size
+    key:  the key
+return: errno, 0 for success, != 0 fail
+*/
+int shm_remove(const int type, const char *filename,
+        const int proj_id, const int64_t size, const key_t key);
 
 #ifdef __cplusplus
 }

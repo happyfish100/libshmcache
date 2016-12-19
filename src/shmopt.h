@@ -78,6 +78,14 @@ static inline char *shmopt_get_value_segment(struct shmcache_context *context,
     }
 }
 
+/**
+remove all share memory
+parameters:
+	context: the context pointer
+return error no, 0 for success, != 0 for fail
+*/
+int shmopt_remove_all(struct shmcache_context *context);
+
 #ifdef __cplusplus
 }
 #endif

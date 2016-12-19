@@ -31,6 +31,8 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
 
     allocator_offset = shm_object_pool_first(&context->value_allocator.doing);
     while (allocator_offset > 0) {
+        logInfo("allocator_offset: %"PRId64, allocator_offset);
+
         allocator = (struct shm_striping_allocator *)(context->segments.
                 hashtable.base + allocator_offset);
         if (shm_value_striping_alloc(allocator, size, value) == 0) {
@@ -69,6 +71,9 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
     int index;
 
     while ((entry_offset=shm_list_first(&context->list)) > 0) {
+        logInfo("file: "__FILE__", line: %d, "
+                "entry_offset: %"PRId64, __LINE__);
+
         entry = HT_ENTRY_PTR(context, entry_offset);
         index = entry->value.index.striping;
         key.data = entry->key;
@@ -101,6 +106,8 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
         }
     }
 
+    logError("file: "__FILE__", line: %d, "
+            "unable to recycle value memory", __LINE__);
     return ENOMEM;
 }
 
@@ -111,7 +118,6 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
     bool recycle;
     int64_t allocator_offset;
     struct shm_striping_allocator *allocator;
-
 
     if (shm_value_allocator_do_alloc(context, size, value) == 0) {
         return 0;
@@ -138,7 +144,11 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
     } else if ((result=shmopt_create_value_segment(context)) != 0) {
         return result;
     }
-    return shm_value_allocator_do_alloc(context, size, value);
+    if ((result=shm_value_allocator_do_alloc(context, size, value)) != 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "malloc %d bytes from shm fail", __LINE__);
+    }
+    return result;
 }
 
 int shm_value_allocator_free(struct shmcache_context *context,

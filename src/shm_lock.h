@@ -25,7 +25,7 @@ extern "C" {
 /**
 lock init
 parameters:
-	lock: the lock context
+	context: the context pointer
 return errno, 0 for success, != 0 fail
 */
 int shm_lock_init(struct shmcache_context *context);
@@ -33,7 +33,7 @@ int shm_lock_init(struct shmcache_context *context);
 /**
 lock
 parameters:
-	lock: the lock context
+	context: the context pointer
 return errno, 0 for success, != 0 fail
 */
 int shm_lock(struct shmcache_context *context);
@@ -41,10 +41,26 @@ int shm_lock(struct shmcache_context *context);
 /**
 unlock
 parameters:
-	lock: the lock context
+	context: the context pointer
 return errno, 0 for success, != 0 fail
 */
 int shm_unlock(struct shmcache_context *context);
+
+/**
+lock file
+parameters:
+	context: the context pointer
+return errno, 0 for success, != 0 fail
+*/
+int shm_lock_file(struct shmcache_context *context);
+
+/**
+unlock file
+parameters:
+	context: the context pointer
+return none
+*/
+void shm_unlock_file(struct shmcache_context *context);
 
 #ifdef __cplusplus
 }

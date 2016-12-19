@@ -104,6 +104,8 @@ int shm_ht_set(struct shmcache_context *context,
     } else {
        entry_offset = shm_object_pool_alloc(&context->hentry_allocator);
        if (entry_offset < 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "alloc hash entry from shm fail", __LINE__);
            return ENOMEM;
        }
        entry = HT_ENTRY_PTR(context, entry_offset);

@@ -12,6 +12,7 @@ int shmopt_init_segment(struct shmcache_context *context,
         struct shmcache_segment_info *segment,
         const int proj_id, const int64_t size)
 {
+    segment->proj_id = proj_id;
     segment->base = shm_mmap(context->config.type,
             context->config.filename, proj_id, size, &segment->key);
     if (segment->base == NULL) {
@@ -29,7 +30,7 @@ static int shmopt_init_value_segment(struct shmcache_context *context,
     struct shmcache_segment_info *segment;
 
     //proj_id 1 for hashtable segment, value segments start from 2
-    proj_id = context->memory->vm_info.segment.count.current + 1;
+    proj_id = segment_index + 2;
     segment = context->segments.values.items + segment_index;
     return shmopt_init_segment(context, segment, proj_id,
             context->memory->vm_info.segment.size);
@@ -115,5 +116,34 @@ int shmopt_open_value_segments(struct shmcache_context *context)
         context->segments.values.count++;
     }
     return 0;
+}
+
+int shmopt_remove_all(struct shmcache_context *context)
+{
+    int result;
+    int r;
+    int segment_index;
+    struct shmcache_segment_info *segment;
+
+    result = shm_remove(context->config.type, context->config.filename,
+            context->segments.hashtable.proj_id,
+            context->segments.hashtable.size,
+            context->segments.hashtable.key);
+    for (segment_index=0; segment_index<context->memory->vm_info.segment.
+            count.current; segment_index++)
+    {
+        segment = context->segments.values.items + segment_index;
+        if ((result=shmopt_init_value_segment(context, segment_index)) != 0) {
+            return result;
+        }
+
+        if ((r=shm_remove(context->config.type, context->config.filename,
+                segment->proj_id, segment->size,
+                segment->key)) != 0)
+        {
+            result = r;
+        }
+    }
+    return result;
 }
 

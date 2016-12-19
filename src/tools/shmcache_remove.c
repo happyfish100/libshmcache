@@ -10,21 +10,16 @@
 #include "logger.h"
 #include "hash.h"
 #include "shmcache.h"
+#include "shmopt.h"
 
 int main(int argc, char *argv[])
 {
 	int result;
     struct shmcache_config config;
     struct shmcache_context context;
-    struct shmcache_buffer key;
-    struct shmcache_buffer value;
-    const int ttl = 600;
 	
 	log_init();
 	g_log_context.log_level = LOG_DEBUG;
-   
-    printf("sizeof(struct shm_hash_entry): %d\n",
-            (int)sizeof(struct shm_hash_entry));
 
     memset(&config, 0, sizeof(config));
 
@@ -47,17 +42,6 @@ int main(int argc, char *argv[])
         return result;
     }
 
-    key.data = "key";
-    key.length = strlen(key.data);
-    value.data = "this is a test";
-    value.length = strlen(value.data);
-    result = shmcache_set(&context, &key, &value, ttl);
-    if (result == 0) {
-        printf("set OK\n");
-    } else {
-        printf("set fail, errno: %d\n", result);
-    }
-
-	return 0;
+    return shmopt_remove_all(&context);
 }
 

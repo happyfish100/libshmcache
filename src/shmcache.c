@@ -178,27 +178,8 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         struct shm_value_size_info *striping, int64_t *ht_offsets)
 {
     int result;
-    int fd;
-    mode_t old_mast;
 
-    old_mast = umask(0);
-    fd = open(context->config.filename, O_WRONLY | O_CREAT, 0666);
-    umask(old_mast);
-    if (fd < 0) {
-        result = errno != 0 ? errno : EPERM;
-        logError("file: "__FILE__", line: %d, "
-                "open filename: %s fail, "
-                "errno: %d, error info: %s", __LINE__,
-                context->config.filename, result, strerror(result));
-        return result;
-    }
-
-    if ((result=file_write_lock(fd)) != 0) {
-        close(fd);
-        logError("file: "__FILE__", line: %d, "
-                "lock filename: %s fail, "
-                "errno: %d, error info: %s", __LINE__,
-                context->config.filename, result, strerror(result));
+    if ((result=shm_lock_file(context)) != 0) {
         return result;
     }
 
@@ -228,8 +209,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
                 context->pid, context->segments.hashtable.size);
     } while (0);
 
-    file_unlock(fd);
-    close(fd);
+    shm_unlock_file(context);
     return result;
 }
 
@@ -272,6 +252,7 @@ int shmcache_init(struct shmcache_context *context,
     memset(context, 0, sizeof(*context));
     context->config = *config;
     context->pid = getpid();
+    context->lock_fd = -1;
 
     ht_segment_size = shmcache_get_ht_segment_size(context,
             &segment, &striping, &ht_capacity, ht_offsets);
@@ -291,6 +272,7 @@ int shmcache_init(struct shmcache_context *context,
     memset(context->segments.values.items, 0, bytes);
 
     context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
+    shmcache_set_obj_allocators(context, ht_offsets);
     shm_list_set(&context->list, context->segments.hashtable.base,
             &context->memory->hashtable.head);
 
@@ -307,13 +289,12 @@ int shmcache_init(struct shmcache_context *context,
         return EINVAL;
     }
 
-    shmcache_set_obj_allocators(context, ht_offsets);
     if (context->config.lock_policy.trylock_interval_us > 0) {
         context->detect_deadlock_clocks = 1000 * context->config.
             lock_policy.detect_deadlock_interval_ms / context->config.
             lock_policy.trylock_interval_us;
     }
-    return 0;
+    return shmopt_open_value_segments(context);
 }
 
 void shmcache_destroy(struct shmcache_context *context)

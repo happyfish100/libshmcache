@@ -185,3 +185,45 @@ int shm_munmap(const int type, void *addr, const int64_t size)
     return result;
 }
 
+int shm_remove(const int type, const char *filename,
+        const int proj_id, const int64_t size, const key_t key)
+{
+    int result;
+    char true_filename[MAX_PATH_SIZE];
+
+    if (type == SHMCACHE_TYPE_MMAP) {
+        snprintf(true_filename, sizeof(true_filename), "%s.%d",
+                filename, proj_id - 1);
+        if (unlink(true_filename) != 0) {
+            result = errno != 0 ? errno : EPERM;
+            logError("file: "__FILE__", line: %d, "
+                    "unlink file: %s fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    true_filename, errno, strerror(errno));
+            return result;
+        }
+    } else {
+        int shmid;
+
+        shmid = shmget(key, size, 0666);
+        if (shmid < 0) {
+            result = errno != 0 ? errno : EACCES;
+            logError("file: "__FILE__", line: %d, "
+                    "shmget with key %08x fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    key, errno, strerror(errno));
+            return result;
+        }
+
+         if (shmctl(shmid, IPC_RMID, NULL) != 0) {
+            result = errno != 0 ? errno : EACCES;
+            logError("file: "__FILE__", line: %d, "
+                    "remove shm with key %08x fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    key, errno, strerror(errno));
+            return result;
+         }
+    }
+    return 0;
+}
+

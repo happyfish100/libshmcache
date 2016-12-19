@@ -53,9 +53,69 @@ int shm_lock_init(struct shmcache_context *context)
 	return 0;
 }
 
+int shm_lock_file(struct shmcache_context *context)
+{
+    int result;
+    mode_t old_mast;
+
+    if (context->lock_fd > 0) {
+        close(context->lock_fd);
+    }
+
+    old_mast = umask(0);
+    context->lock_fd = open(context->config.filename, O_WRONLY | O_CREAT, 0666);
+    umask(old_mast);
+    if (context->lock_fd < 0) {
+        result = errno != 0 ? errno : EPERM;
+        logError("file: "__FILE__", line: %d, "
+                "open filename: %s fail, "
+                "errno: %d, error info: %s", __LINE__,
+                context->config.filename, result, strerror(result));
+        return result;
+    }
+
+    if ((result=file_write_lock(context->lock_fd)) != 0) {
+        close(context->lock_fd);
+        context->lock_fd = -1;
+        logError("file: "__FILE__", line: %d, "
+                "lock filename: %s fail, "
+                "errno: %d, error info: %s", __LINE__,
+                context->config.filename, result, strerror(result));
+        return result;
+    }
+
+    return result;
+}
+
+void shm_unlock_file(struct shmcache_context *context)
+{
+    close(context->lock_fd);
+    context->lock_fd = -1;
+}
+
 static int shm_detect_deadlock(struct shmcache_context *context,
         const pid_t last_pid)
 {
+    int result;
+    if ((result=shm_lock_file(context)) != 0) {
+        return result;
+    }
+
+    if (last_pid == context->memory->lock.pid) {
+        if ((result=pthread_mutex_unlock(&context->memory->lock.mutex)) != 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "call pthread_mutex_unlock fail, "
+                    "errno: %d, error info: %s",
+                    __LINE__, result, strerror(result));
+        } else {
+            context->memory->lock.pid = 0;
+            logInfo("file: "__FILE__", line: %d, "
+                    "my pid: %d, unlock deadlock by process: %d",
+                    __LINE__, context->pid, last_pid);
+        }
+    }
+
+    shm_unlock_file(context);
     return 0;
 }
 
@@ -68,7 +128,6 @@ int shm_lock(struct shmcache_context *context)
     clocks = 0;
     while ((result=pthread_mutex_trylock(&context->memory->lock.mutex)) == EBUSY) {
         usleep(context->config.lock_policy.trylock_interval_us);
-
         ++clocks;
         if (clocks > context->detect_deadlock_clocks &&
                 (pid=context->memory->lock.pid) > 0)
