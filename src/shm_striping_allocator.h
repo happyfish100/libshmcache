@@ -40,7 +40,27 @@ reset for recycle use
 parameters:
 	allocator: the allocator pointer
 */
-void shm_striping_allocator_reset(struct shm_striping_allocator *allocator);
+static inline void shm_striping_allocator_reset(struct shm_striping_allocator *allocator)
+{
+    allocator->first_alloc_time = 0;
+    allocator->fail_times = 0;
+    allocator->size.used = 0;
+    allocator->offset.free = allocator->offset.base;
+}
+
+/**
+reset for recycle use
+parameters:
+	allocator: the allocator pointer
+*/
+static inline int shm_striping_allocator_try_reset(struct shm_striping_allocator *allocator)
+{
+    if (allocator->size.used <= 0) {
+        shm_striping_allocator_reset(allocator);
+        return 0;
+    }
+    return EBUSY;
+}
 
 /**
 alloc memory from the allocator
@@ -65,6 +85,12 @@ static inline void shm_striping_allocator_free(struct shm_striping_allocator
     allocator->size.used -= size;
 }
 
+/**
+get free memory size
+parameters:
+	allocator: the allocator pointer
+return free memory size 
+*/
 static inline int64_t shm_striping_allocator_free_size(struct shm_striping_allocator
         *allocator)
 {

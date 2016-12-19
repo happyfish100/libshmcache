@@ -4,7 +4,9 @@
 #include "sched_thread.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
+#include "shm_list.h"
 #include "shmopt.h"
+#include "shm_hashtable.h"
 #include "shm_value_allocator.h"
 
 static int shm_value_striping_alloc(struct shm_striping_allocator
@@ -24,6 +26,7 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
         const int size, struct shm_value *value)
 {
     int64_t allocator_offset;
+    int64_t removed_offset;
     struct shm_striping_allocator *allocator;
 
     allocator_offset = shm_object_pool_first(&context->value_allocator.doing);
@@ -38,8 +41,16 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
                 va_policy.discard_memory_size) || (allocator->fail_times >
                 context->config.va_policy.max_fail_times))
         {
-            allocator_offset = shm_object_pool_remove(&context->value_allocator.doing);
-            shm_object_pool_push(&context->value_allocator.done, allocator_offset);
+            removed_offset = shm_object_pool_remove(&context->value_allocator.doing);
+            if (removed_offset == allocator_offset) {
+                allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE;
+                shm_object_pool_push(&context->value_allocator.done, allocator_offset);
+            } else {
+                logCrit("file: "__FILE__", line: %d, "
+                        "shm_object_pool_remove exception, "
+                        "offset: %"PRId64" != expect: %"PRId64, __LINE__,
+                        removed_offset, allocator_offset);
+            }
         }
 
         allocator_offset = shm_object_pool_next(&context->value_allocator.doing);
@@ -50,19 +61,41 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
 
 static int shm_value_allocator_recycle(struct shmcache_context *context)
 {
+    int64_t entry_offset;
     int64_t allocator_offset;
+    struct shm_hash_entry *entry;
     struct shm_striping_allocator *allocator;
+    struct shmcache_buffer key;
+    int index;
 
-    //TODO: scan done allocator to doing
-    //
-    allocator_offset = shm_object_pool_pop(&context->value_allocator.done);
-    allocator = (struct shm_striping_allocator *)(context->segments.
-            hashtable.base + allocator_offset);
+    while ((entry_offset=shm_list_first(&context->list)) > 0) {
+        entry = HT_ENTRY_PTR(context, entry_offset);
+        index = entry->value.index.striping;
+        key.data = entry->key;
+        key.length = entry->key_len;
+        shm_ht_delete_ex(context, &key, false);
 
-    shm_striping_allocator_reset(allocator);
-    shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
+        allocator = context->value_allocator.allocators + index;
+        if (shm_striping_allocator_try_reset(allocator) == 0) {  //empty
+            if (allocator->in_which_pool == SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE) {
+                allocator_offset =  (char *)allocator - context->segments.hashtable.base;
+                if (shm_object_pool_remove_by(&context->value_allocator.done,
+                            allocator_offset) >= 0) {
+                    allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
+                    shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
+                } else {
+                    logCrit("file: "__FILE__", line: %d, "
+                            "shm_object_pool_remove_by exception, "
+                            "index: %d, offset: %"PRId64, __LINE__,
+                            index, allocator_offset);
+                    return EFAULT;
+                }
+            }
+            return 0;
+        }
+    }
 
-    return 0;
+    return ENOMEM;
 }
 
 int shm_value_allocator_alloc(struct shmcache_context *context,
@@ -82,10 +115,6 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
             context->memory->vm_info.segment.count.max)
     {
         recycle = true;
-        if (shm_object_pool_is_empty(&context->value_allocator.done)) {
-            allocator_offset = shm_object_pool_pop(&context->value_allocator.doing);
-            shm_object_pool_push(&context->value_allocator.done, allocator_offset);
-        }
     } else {
         allocator_offset = shm_object_pool_first(&context->value_allocator.done);
         if (allocator_offset > 0) {

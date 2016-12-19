@@ -308,6 +308,11 @@ int shmcache_init(struct shmcache_context *context,
     }
 
     shmcache_set_obj_allocators(context, ht_offsets);
+    if (context->config.lock_policy.trylock_interval_us > 0) {
+        context->detect_deadlock_clocks = 1000 * context->config.
+            lock_policy.detect_deadlock_interval_ms / context->config.
+            lock_policy.trylock_interval_us;
+    }
     return 0;
 }
 

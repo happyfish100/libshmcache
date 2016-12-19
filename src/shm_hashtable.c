@@ -6,10 +6,8 @@
 #include "shared_func.h"
 #include "sched_thread.h"
 #include "shmopt.h"
-#include "shm_list.h"
 #include "shm_lock.h"
 #include "shm_object_pool.h"
-#include "shm_value_allocator.h"
 #include "shm_hashtable.h"
 
 int shm_ht_get_capacity(const int max_count)
@@ -32,9 +30,6 @@ void shm_ht_init(struct shmcache_context *context, const int capacity)
 #define HT_GET_BUCKET_INDEX(context, key) \
     ((unsigned int)context->config.hash_func(key->data, key->length) % \
      context->memory->hashtable.capacity)
-
-#define HT_ENTRY_PTR(context, entry_offset) ((struct shm_hash_entry *) \
-    (context->segments.hashtable.base + entry_offset))
 
 #define HT_KEY_EQUALS(hentry, pkey) (hentry->key_len == pkey->length && \
         memcmp(hentry->key, pkey->data, pkey->length) == 0)
@@ -83,7 +78,8 @@ static int shm_ht_do_set(struct shmcache_context *context,
             if (hvalue != NULL) {
                 if (HT_VALUE_EQUALS(hvalue, entry->value.length, value)) {
                     entry->expires = HT_CALC_EXPIRES(ttl);
-                    //TODO: move to tail of list
+                    shm_list_remove(&context->list, entry_offset);
+                    shm_list_add_tail(&context->list, entry_offset);
                     return 0;
                 }
             }
@@ -161,12 +157,69 @@ int shm_ht_get(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         struct shmcache_buffer *value)
 {
-    return 0;
+    unsigned int index;
+    int64_t entry_offset;
+    struct shm_hash_entry *entry;
+
+    index = HT_GET_BUCKET_INDEX(context, key);
+    entry_offset = context->memory->hashtable.buckets[index];
+    while (entry_offset > 0) {
+        entry = HT_ENTRY_PTR(context, entry_offset);
+        if (HT_KEY_EQUALS(entry, key)) {
+            if (entry->expires >= get_current_time()) {
+                value->data = shm_ht_get_value_ptr(context, &entry->value);
+                value->length = entry->value.length;
+                return 0;
+            } else {
+                return ETIMEDOUT;
+            }
+        }
+
+        entry_offset = entry->ht_next;
+    }
+
+    return ENOENT;
 }
 
-int shm_ht_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key)
+int shm_ht_delete_ex(struct shmcache_context *context,
+        const struct shmcache_buffer *key, const bool neek_lock)
 {
-    return 0;
+    int result;
+    unsigned int index;
+    int64_t entry_offset;
+    struct shm_hash_entry *entry;
+    struct shm_hash_entry *previous;
+
+    previous = NULL;
+    entry = NULL;
+    if (neek_lock && (result=shm_lock(context)) != 0) {
+        return result;
+    }
+
+    result = ENOENT;
+    index = HT_GET_BUCKET_INDEX(context, key);
+    entry_offset = context->memory->hashtable.buckets[index];
+    while (entry_offset > 0) {
+        entry = HT_ENTRY_PTR(context, entry_offset);
+        if (HT_KEY_EQUALS(entry, key)) {
+            if (previous != NULL) {
+                previous->ht_next = entry_offset;
+            } else {
+                context->memory->hashtable.buckets[index] = entry_offset;
+            }
+            shm_value_allocator_free(context, &entry->value);
+            shm_list_remove(&context->list, entry_offset);
+            result = 0;
+            break;
+        }
+
+        entry_offset = entry->ht_next;
+        previous = entry;
+    }
+
+    if (neek_lock) {
+        shm_unlock(context);
+    }
+    return result;
 }
 

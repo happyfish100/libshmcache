@@ -19,6 +19,11 @@
 #include <sys/shm.h>
 #include "common_define.h"
 #include "shmcache_types.h"
+#include "shm_list.h"
+#include "shm_value_allocator.h"
+
+#define HT_ENTRY_PTR(context, entry_offset) ((struct shm_hash_entry *) \
+    (context->segments.hashtable.base + entry_offset))
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +45,7 @@ int shm_ht_get_capacity(const int max_count);
 /**
 ht init
 parameters:
-	ht: the ht pointer
+	context: the context pointer
     capacity: the ht capacity
 return none
 */
@@ -49,7 +54,7 @@ void shm_ht_init(struct shmcache_context *context, const int capacity);
 /**
 set value
 parameters:
-	ht: the ht pointer
+	context: the context pointer
     key: the key
     value: the value
     ttl: the time to live in seconds
@@ -62,7 +67,7 @@ int shm_ht_set(struct shmcache_context *context,
 /**
 get value
 parameters:
-	ht: the ht pointer
+	context: the context pointer
     key: the key
     value: store the returned value
 return error no, 0 for success, != 0 for fail
@@ -74,12 +79,15 @@ int shm_ht_get(struct shmcache_context *context,
 /**
 delte the key
 parameters:
-	ht: the ht pointer
+	context: the context pointer
     key: the key
+    neek_lock: if need lock
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key);
+int shm_ht_delete_ex(struct shmcache_context *context,
+        const struct shmcache_buffer *key, const bool neek_lock);
+
+#define shm_ht_delete(context, key) shm_ht_delete_ex(context, key, true)
 
 #ifdef __cplusplus
 }

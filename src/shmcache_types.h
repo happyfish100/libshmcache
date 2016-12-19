@@ -30,6 +30,9 @@
 
 #define SHMCACHE_NEVER_EXPIRED_TTL  0
 
+#define SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING  0
+#define SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE   1
+
 struct shmcache_config {
     char filename[MAX_PATH_SIZE];
     int64_t max_memory;
@@ -115,6 +118,7 @@ struct shm_hashtable {
 struct shm_striping_allocator {
     time_t first_alloc_time;  //record the timestamp of fist allocate
     int fail_times;   //allocate fail times
+    short in_which_pool;  //in doing or done
     struct shm_segment_striping_pair index;
     struct {
         int total;
@@ -129,7 +133,6 @@ struct shm_striping_allocator {
 };
 
 struct shm_value_allocator {
-    struct shm_object_pool_info free;
     struct shm_object_pool_info doing;
     struct shm_object_pool_info done;
 };

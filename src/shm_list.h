@@ -85,6 +85,39 @@ static inline void shm_list_remove(struct shmcache_list *list, int64_t obj_offse
     node->prev = node->next = obj_offset;
 }
 
+/**
+pop an element from list
+parameters:
+	list: the list
+return first object offset
+*/
+static inline int64_t shm_list_pop(struct shmcache_list *list)
+{
+    int64_t obj_offset;
+    if (list->head.ptr->next == list->head.ptr->prev) {  //empty
+        return 0;
+    }
+
+    obj_offset = list->head.ptr->next;
+    shm_list_remove(list, obj_offset);
+    return obj_offset;
+}
+
+/**
+get first element
+parameters:
+	list: the list
+return first object offset
+*/
+static inline int64_t shm_list_first(struct shmcache_list *list)
+{
+    if (list->head.ptr->next == list->head.ptr->prev) {  //empty
+        return 0;
+    }
+
+    return list->head.ptr->next;
+}
+
 #ifdef __cplusplus
 }
 #endif

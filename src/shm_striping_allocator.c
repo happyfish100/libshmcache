@@ -16,14 +16,6 @@ void shm_striping_allocator_init(struct shm_striping_allocator *allocator,
     shm_striping_allocator_reset(allocator);
 }
 
-void shm_striping_allocator_reset(struct shm_striping_allocator *allocator)
-{
-    allocator->first_alloc_time = 0;
-    allocator->fail_times = 0;
-    allocator->size.used = 0;
-    allocator->offset.free = allocator->offset.base;
-}
-
 int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
         const int size)
 {

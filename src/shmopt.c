@@ -85,6 +85,7 @@ int shmopt_create_value_segment(struct shmcache_context *context)
 
         //add to doing queue
         allocator_offset = (char *)allocator - context->segments.hashtable.base;
+        allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
         shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
 
         striping_offset += context->memory->vm_info.striping.size;
