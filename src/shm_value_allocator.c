@@ -47,7 +47,7 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
                 shm_object_pool_push(&context->value_allocator.done, allocator_offset);
             } else {
                 logCrit("file: "__FILE__", line: %d, "
-                        "shm_object_pool_remove exception, "
+                        "shm_object_pool_remove fail, "
                         "offset: %"PRId64" != expect: %"PRId64, __LINE__,
                         removed_offset, allocator_offset);
             }
@@ -73,7 +73,13 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
         index = entry->value.index.striping;
         key.data = entry->key;
         key.length = entry->key_len;
-        shm_ht_delete_ex(context, &key, false);
+        if (shm_ht_delete(context, &key) != 0) {
+            logCrit("file: "__FILE__", line: %d, "
+                    "shm_ht_delete fail, index: %d, "
+                    "entry offset: %"PRId64, __LINE__,
+                    index, entry_offset);
+            return EFAULT;
+        }
 
         allocator = context->value_allocator.allocators + index;
         if (shm_striping_allocator_try_reset(allocator) == 0) {  //empty
@@ -85,7 +91,7 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
                     shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
                 } else {
                     logCrit("file: "__FILE__", line: %d, "
-                            "shm_object_pool_remove_by exception, "
+                            "shm_object_pool_remove_by fail, "
                             "index: %d, offset: %"PRId64, __LINE__,
                             index, allocator_offset);
                     return EFAULT;

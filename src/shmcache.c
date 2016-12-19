@@ -324,18 +324,32 @@ int shmcache_set(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         const struct shmcache_buffer *value, const int ttl)
 {
-    return 0;
+    int result;
+
+    if ((result=shm_lock(context)) != 0) {
+        return result;
+    }
+    result = shm_ht_set(context, key, value, ttl);
+    shm_unlock(context);
+    return result;
 }
 
 int shmcache_get(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         struct shmcache_buffer *value)
 {
-    return 0;
+    return shm_ht_get(context, key, value);
 }
 
 int shmcache_delete(struct shmcache_context *context,
         const struct shmcache_buffer *key)
 {
-    return 0;
+    int result;
+    if ((result=shm_lock(context)) != 0) {
+        return result;
+    }
+    result = shm_ht_delete(context, key);
+    shm_unlock(context);
+    return result;
 }
+

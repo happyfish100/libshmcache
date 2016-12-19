@@ -95,7 +95,7 @@ void *shm_do_shmmap(const key_t key, const int64_t size)
     int shmid;
     void *addr;
 
-    shmid = shmget(key, size, IPC_CREAT);
+    shmid = shmget(key, size, IPC_CREAT | 0666);
     if (shmid < 0) {
         logError("file: "__FILE__", line: %d, "
                 "shmget with key %08x fail, "

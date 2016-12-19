@@ -81,13 +81,10 @@ delte the key
 parameters:
 	context: the context pointer
     key: the key
-    neek_lock: if need lock
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_delete_ex(struct shmcache_context *context,
-        const struct shmcache_buffer *key, const bool neek_lock);
-
-#define shm_ht_delete(context, key) shm_ht_delete_ex(context, key, true)
+int shm_ht_delete(struct shmcache_context *context,
+        const struct shmcache_buffer *key);
 
 #ifdef __cplusplus
 }

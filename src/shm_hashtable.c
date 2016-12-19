@@ -53,7 +53,7 @@ static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
     }
 }
 
-static int shm_ht_do_set(struct shmcache_context *context,
+int shm_ht_set(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         const struct shmcache_buffer *value, const int ttl)
 {
@@ -65,6 +65,13 @@ static int shm_ht_do_set(struct shmcache_context *context,
     char *hvalue;
     struct shm_value new_value;
     bool found;
+
+    if (key->length > SHMCACHE_MAX_KEY_SIZE) {
+		logError("file: "__FILE__", line: %d, "
+                "invalid key length: %d exceeds %d", __LINE__,
+                key->length, SHMCACHE_MAX_KEY_SIZE);
+        return ENAMETOOLONG;
+    }
 
     previous = NULL;
     entry = NULL;
@@ -105,8 +112,12 @@ static int shm_ht_do_set(struct shmcache_context *context,
     if ((result=shm_value_allocator_alloc(context, value->length,
                     &new_value)) != 0)
     {
+        if (!found) {  //rollback
+            shm_object_pool_free(&context->hentry_allocator, entry_offset);
+        }
         return result;
     }
+
     hvalue = shm_ht_get_value_ptr(context, &new_value);
     memcpy(hvalue, value->data, value->length);
     new_value.length = value->length;
@@ -119,38 +130,16 @@ static int shm_ht_do_set(struct shmcache_context *context,
         return 0;
     }
 
-    memcpy(entry->key, key->data,  key->length); 
+    memcpy(entry->key, key->data, key->length);
     entry->key_len = key->length;
     entry->ht_next = 0;
-
-    if (previous != NULL) {
+    if (previous != NULL) {  //add to tail
         previous->ht_next = entry_offset;
     } else {
         context->memory->hashtable.buckets[index] = entry_offset;
     }
 
     return 0;
-}
-
-int shm_ht_set(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        const struct shmcache_buffer *value, const int ttl)
-{
-    int result;
-
-    if (key->length > SHMCACHE_MAX_KEY_SIZE) {
-		logError("file: "__FILE__", line: %d, "
-                "invalid key length: %d exceeds %d", __LINE__,
-                key->length, SHMCACHE_MAX_KEY_SIZE);
-        return ENAMETOOLONG;
-    }
-
-    if ((result=shm_lock(context)) != 0) {
-        return result;
-    }
-    result = shm_ht_do_set(context, key, value, ttl);
-    shm_unlock(context);
-    return result;
 }
 
 int shm_ht_get(struct shmcache_context *context,
@@ -181,8 +170,8 @@ int shm_ht_get(struct shmcache_context *context,
     return ENOENT;
 }
 
-int shm_ht_delete_ex(struct shmcache_context *context,
-        const struct shmcache_buffer *key, const bool neek_lock)
+int shm_ht_delete(struct shmcache_context *context,
+        const struct shmcache_buffer *key)
 {
     int result;
     unsigned int index;
@@ -191,11 +180,6 @@ int shm_ht_delete_ex(struct shmcache_context *context,
     struct shm_hash_entry *previous;
 
     previous = NULL;
-    entry = NULL;
-    if (neek_lock && (result=shm_lock(context)) != 0) {
-        return result;
-    }
-
     result = ENOENT;
     index = HT_GET_BUCKET_INDEX(context, key);
     entry_offset = context->memory->hashtable.buckets[index];
@@ -203,12 +187,14 @@ int shm_ht_delete_ex(struct shmcache_context *context,
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
             if (previous != NULL) {
-                previous->ht_next = entry_offset;
+                previous->ht_next = entry->ht_next;
             } else {
-                context->memory->hashtable.buckets[index] = entry_offset;
+                context->memory->hashtable.buckets[index] = entry->ht_next;
             }
+
             shm_value_allocator_free(context, &entry->value);
             shm_list_remove(&context->list, entry_offset);
+            shm_object_pool_free(&context->hentry_allocator, entry_offset);
             result = 0;
             break;
         }
@@ -217,9 +203,5 @@ int shm_ht_delete_ex(struct shmcache_context *context,
         previous = entry;
     }
 
-    if (neek_lock) {
-        shm_unlock(context);
-    }
     return result;
 }
-

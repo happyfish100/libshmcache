@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include "logger.h"
+#include "hash.h"
 #include "shmcache.h"
 
 int main(int argc, char *argv[])
@@ -23,6 +24,21 @@ int main(int argc, char *argv[])
             (int)sizeof(struct shm_hash_entry));
 
     memset(&config, 0, sizeof(config));
+
+    strcpy(config.filename, "/tmp/shmcache.dat");
+    config.max_memory = 4 * 1024 * 1024;
+    config.segment_size = 1 * 1024 * 1024;
+    config.max_key_count = 10000;
+    config.max_value_size = 64 * 1024;
+    config.type = SHMCACHE_TYPE_SHM;  //shm or mmap
+
+    config.va_policy.avg_key_ttl = 600;
+    config.va_policy.discard_memory_size = 128;
+    config.va_policy.max_fail_times = 5;
+
+    config.lock_policy.trylock_interval_us = 1000;
+    config.lock_policy.detect_deadlock_interval_ms = 1000;
+
     if ((result=shmcache_init(&context, &config)) != 0) {
         return result;
     }
