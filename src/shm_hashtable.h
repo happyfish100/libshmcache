@@ -77,14 +77,29 @@ int shm_ht_get(struct shmcache_context *context,
         struct shmcache_buffer *value);
 
 /**
-delte the key
+delete the key for internal usage
+parameters:
+	context: the context pointer
+    key: the key
+    recycled: if recycled
+return error no, 0 for success, != 0 for fail
+*/
+int shm_ht_delete_ex(struct shmcache_context *context,
+        const struct shmcache_buffer *key, bool *recycled);
+
+/**
+delete the key
 parameters:
 	context: the context pointer
     key: the key
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key);
+static inline int shm_ht_delete(struct shmcache_context *context,
+        const struct shmcache_buffer *key)
+{
+    bool recycled;
+    return shm_ht_delete_ex(context, key, &recycled);
+}
 
 static inline int shm_ht_count(struct shmcache_context *context)
 {

@@ -14,7 +14,7 @@ int shm_ht_get_capacity(const int max_count)
 {
     unsigned int *capacity;
     //capacity = hash_get_prime_capacity(max_count);
-    capacity = NULL;  //TODO: remove me!!!
+    capacity = NULL;  //TODO: fix me
     if (capacity == NULL) {
         return max_count;
     }
@@ -44,8 +44,7 @@ static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
         const struct shm_value *value)
 {
     char *base;
-    base = shmopt_get_value_segment(context,
-            value->index.segment);
+    base = shmopt_get_value_segment(context, value->index.segment);
     if (base != NULL) {
         return base + value->offset;
     } else {
@@ -78,18 +77,26 @@ int shm_ht_set(struct shmcache_context *context,
     found = false;
     index = HT_GET_BUCKET_INDEX(context, key);
     entry_offset = context->memory->hashtable.buckets[index];
+
     while (entry_offset > 0) {
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
+
+    //logDebug("function: %s, index: %d, found entry_offset: %"PRId64, __FUNCTION__, index, entry_offset);
+
+            /*
             hvalue = shm_ht_get_value_ptr(context, &entry->value);
             if (hvalue != NULL) {
                 if (HT_VALUE_EQUALS(hvalue, entry->value.length, value)) {
+                    logInfo("#######NO replace: %.*s, entry offset: %"PRId64,
+                            key->length, key->data, entry_offset);
                     entry->expires = HT_CALC_EXPIRES(ttl);
-                    shm_list_remove(&context->list, entry_offset);
-                    shm_list_add_tail(&context->list, entry_offset);
+                    //shm_list_remove(&context->list, entry_offset);
+                    //shm_list_add_tail(&context->list, entry_offset);
                     return 0;
                 }
             }
+            */
             found = true;
             break;
         }
@@ -98,10 +105,7 @@ int shm_ht_set(struct shmcache_context *context,
         previous = entry;
     }
 
-    if (found) {
-        shm_value_allocator_free(context, &entry->value);
-        shm_list_remove(&context->list, entry_offset);
-    } else {
+    if (!found) {
        entry_offset = shm_object_pool_alloc(&context->hentry_allocator);
        if (entry_offset < 0) {
             logError("file: "__FILE__", line: %d, "
@@ -118,6 +122,12 @@ int shm_ht_set(struct shmcache_context *context,
             shm_object_pool_free(&context->hentry_allocator, entry_offset);
         }
         return result;
+    }
+
+    if (found) {
+        bool recycled;
+        shm_value_allocator_free(context, &entry->value, &recycled);
+        shm_list_remove(&context->list, entry_offset);
     }
 
     hvalue = shm_ht_get_value_ptr(context, &new_value);
@@ -142,6 +152,8 @@ int shm_ht_set(struct shmcache_context *context,
     }
     context->memory->hashtable.count++;
 
+    logDebug("index: %d, context->memory->hashtable.count: %d", index, context->memory->hashtable.count);
+
     return 0;
 }
 
@@ -155,10 +167,11 @@ int shm_ht_get(struct shmcache_context *context,
 
     index = HT_GET_BUCKET_INDEX(context, key);
     entry_offset = context->memory->hashtable.buckets[index];
+    //logDebug("function: %s, index: %d, entry_offset: %"PRId64, __FUNCTION__, index, entry_offset);
     while (entry_offset > 0) {
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
-            if (entry->expires >= get_current_time()) {
+            if (entry->expires == 0 || entry->expires >= get_current_time()) {
                 value->data = shm_ht_get_value_ptr(context, &entry->value);
                 value->length = entry->value.length;
                 return 0;
@@ -173,8 +186,8 @@ int shm_ht_get(struct shmcache_context *context,
     return ENOENT;
 }
 
-int shm_ht_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key)
+int shm_ht_delete_ex(struct shmcache_context *context,
+        const struct shmcache_buffer *key, bool *recycled)
 {
     int result;
     unsigned int index;
@@ -195,7 +208,7 @@ int shm_ht_delete(struct shmcache_context *context,
                 context->memory->hashtable.buckets[index] = entry->ht_next;
             }
 
-            shm_value_allocator_free(context, &entry->value);
+            shm_value_allocator_free(context, &entry->value, recycled);
             shm_list_remove(&context->list, entry_offset);
             shm_object_pool_free(&context->hentry_allocator, entry_offset);
             context->memory->hashtable.count--;

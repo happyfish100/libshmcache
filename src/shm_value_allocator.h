@@ -38,10 +38,11 @@ free memory to the allocator
 parameters:
 	allocator: the shm context
     value:  the value to free
+    recycled: if recycled
 return error no, 0 for success, != 0 fail
 */
 int shm_value_allocator_free(struct shmcache_context *context,
-        struct shm_value *value);
+        struct shm_value *value, bool *recycled);
 
 #ifdef __cplusplus
 }

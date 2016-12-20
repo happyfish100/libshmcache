@@ -217,10 +217,10 @@ struct shmcache_context {
 };
 
 struct shmcache_stats {
-    int64_t total_bytes;
-    int64_t free_bytes;
-    int total_trunk_count;
-    int free_trunk_count;
+    struct {
+        int64_t total;
+        int64_t used;
+    } value_memory;
 };
 
 #ifdef __cplusplus

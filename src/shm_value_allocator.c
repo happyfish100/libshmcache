@@ -1,6 +1,7 @@
 //shm_value_allocator.c
 
 #include <errno.h>
+#include <assert.h>
 #include "sched_thread.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
@@ -31,7 +32,7 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
 
     allocator_offset = shm_object_pool_first(&context->value_allocator.doing);
 
-    logInfo("function: %s, allocator_offset: %"PRId64, __FUNCTION__, allocator_offset);
+    logDebug("function: %s, allocator_offset: %"PRId64, __FUNCTION__, allocator_offset);
 
     while (allocator_offset > 0) {
         allocator = (struct shm_striping_allocator *)(context->segments.
@@ -47,7 +48,7 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
             removed_offset = shm_object_pool_remove(&context->value_allocator.doing);
             if (removed_offset == allocator_offset) {
                 allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE;
-                shm_object_pool_push(&context->value_allocator.done, allocator_offset);
+                assert(shm_object_pool_push(&context->value_allocator.done, allocator_offset) == 0);
             } else {
                 logCrit("file: "__FILE__", line: %d, "
                         "shm_object_pool_remove fail, "
@@ -62,47 +63,57 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
     return ENOMEM;
 }
 
+
+static int shm_value_allocator_do_recycle(struct shmcache_context *context,
+        struct shm_striping_allocator *allocator)
+{
+    int64_t allocator_offset;
+    if (allocator->in_which_pool == SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE) {
+        allocator_offset = (char *)allocator - context->segments.hashtable.base;
+        if (shm_object_pool_remove_by(&context->value_allocator.done,
+                    allocator_offset) >= 0) {
+            allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
+            assert(shm_object_pool_push(&context->value_allocator.doing, allocator_offset) == 0);
+        } else {
+            logCrit("file: "__FILE__", line: %d, "
+                    "shm_object_pool_remove_by fail, "
+                    "index: %d, offset: %"PRId64, __LINE__,
+                    allocator->index.striping, allocator_offset);
+            return EFAULT;
+        }
+    }
+    return 0;
+}
+
 static int shm_value_allocator_recycle(struct shmcache_context *context)
 {
     int64_t entry_offset;
-    int64_t allocator_offset;
     struct shm_hash_entry *entry;
-    struct shm_striping_allocator *allocator;
     struct shmcache_buffer key;
     int index;
+    bool recycled;
 
     while ((entry_offset=shm_list_first(&context->list)) > 0) {
-        logInfo("file: "__FILE__", line: %d, "
+        logDebug("file: "__FILE__", line: %d, "
                 "entry_offset: %"PRId64, __LINE__, entry_offset);
 
         entry = HT_ENTRY_PTR(context, entry_offset);
         index = entry->value.index.striping;
         key.data = entry->key;
         key.length = entry->key_len;
-        if (shm_ht_delete(context, &key) != 0) {
+        if (shm_ht_delete_ex(context, &key, &recycled) != 0) {
             logCrit("file: "__FILE__", line: %d, "
                     "shm_ht_delete fail, index: %d, "
-                    "entry offset: %"PRId64, __LINE__,
-                    index, entry_offset);
+                    "entry offset: %"PRId64", "
+                    "key: %.*s, key length: %d", __LINE__,
+                    index, entry_offset, entry->key_len,
+                    entry->key, entry->key_len);
             return EFAULT;
         }
 
-        allocator = context->value_allocator.allocators + index;
-        if (shm_striping_allocator_try_reset(allocator) == 0) {  //empty
-            if (allocator->in_which_pool == SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE) {
-                allocator_offset =  (char *)allocator - context->segments.hashtable.base;
-                if (shm_object_pool_remove_by(&context->value_allocator.done,
-                            allocator_offset) >= 0) {
-                    allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
-                    shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
-                } else {
-                    logCrit("file: "__FILE__", line: %d, "
-                            "shm_object_pool_remove_by fail, "
-                            "index: %d, offset: %"PRId64, __LINE__,
-                            index, allocator_offset);
-                    return EFAULT;
-                }
-            }
+        if (recycled) {
+            logInfo("file: "__FILE__", line: %d, "
+                    "recycle #%d striping memory", __LINE__, index);
             return 0;
         }
     }
@@ -140,25 +151,43 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
         }
     }
 
-    if (recycle && (result=shm_value_allocator_recycle(context)) != 0) {
-        return result;
-    } else if ((result=shmopt_create_value_segment(context)) != 0) {
-        return result;
+    if (recycle ) {
+        result = shm_value_allocator_recycle(context);
+    } else {
+        result = shmopt_create_value_segment(context);
     }
-    if ((result=shm_value_allocator_do_alloc(context, size, value)) != 0) {
-            logError("file: "__FILE__", line: %d, "
-                    "malloc %d bytes from shm fail", __LINE__, size);
+    if (result == 0) {
+        result = shm_value_allocator_do_alloc(context, size, value);
+    }
+    if (result != 0) {
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes from shm fail", __LINE__, size);
     }
     return result;
 }
 
 int shm_value_allocator_free(struct shmcache_context *context,
-        struct shm_value *value)
+        struct shm_value *value, bool *recycled)
 {
     struct shm_striping_allocator *allocator;
+    int64_t used;
 
     allocator = context->value_allocator.allocators + value->index.striping;
-    shm_striping_allocator_free(allocator, value->size);
+    used = shm_striping_allocator_free(allocator, value->size);
+    if (used <= 0) {
+        if (used < 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "striping used memory: %"PRId64" < 0, "
+                    "segment: %d, striping: %d, offset: %"PRId64", size: %d",
+                    __LINE__, used, value->index.segment,
+                    value->index.striping, value->offset, value->size);
+        }
+        *recycled = true;
+        shm_striping_allocator_reset(allocator);
+        return shm_value_allocator_do_recycle(context, allocator);
+    }
+
+    *recycled = false;
     return 0;
 }
 

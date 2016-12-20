@@ -10,6 +10,7 @@
 #include "shared_func.h"
 #include "shm_hashtable.h"
 #include "shm_object_pool.h"
+#include "shm_striping_allocator.h"
 #include "shm_op_wrapper.h"
 #include "shmopt.h"
 #include "shm_list.h"
@@ -155,7 +156,7 @@ static int shmcache_do_init(struct shmcache_context *context,
             &context->memory->hentry_obj_pool,
             sizeof(struct shm_hash_entry),
             ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT],
-            context->config.max_key_count, queue_base, true);
+            context->config.max_key_count + 1, queue_base, true);
 
     queue_base = (int64_t *)(context->segments.hashtable.base +
             ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);
@@ -163,7 +164,7 @@ static int shmcache_do_init(struct shmcache_context *context,
             &context->memory->value_allocator.doing,
             sizeof(struct shm_striping_allocator),
             ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT],
-            context->memory->vm_info.striping.count.max,
+            context->memory->vm_info.striping.count.max + 1,
             queue_base, false);
 
     queue_base = (int64_t *)(context->segments.hashtable.base +
@@ -172,7 +173,7 @@ static int shmcache_do_init(struct shmcache_context *context,
             &context->memory->value_allocator.done,
             sizeof(struct shm_striping_allocator),
             ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT],
-            context->memory->vm_info.striping.count.max,
+            context->memory->vm_info.striping.count.max + 1,
             queue_base, false);
 
 	return 0;
@@ -241,6 +242,47 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
     context->value_allocator.allocators = (struct shm_striping_allocator *)
         (context->segments.hashtable.base +
         ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT]);
+
+    {
+        struct shm_striping_allocator *allocator;
+        struct shm_striping_allocator *end;
+
+        end = context->value_allocator.allocators +
+            context->memory->vm_info.striping.count.current;
+        for (allocator=context->value_allocator.allocators; allocator<end; allocator++) {
+            logInfo("#%d  allocator %ld in which: %d, base: %"PRId64", free: %"PRId64", used: %"PRId64,
+                    (int)(allocator - context->value_allocator.allocators) + 1,
+                    (char *)allocator - context->segments.hashtable.base,
+                    allocator->in_which_pool, allocator->offset.base,
+                    shm_striping_allocator_free_size(allocator),
+                    shm_striping_allocator_used_size(allocator));
+        }
+
+    }
+}
+
+static void print_value_allocator(struct shmcache_context *context,
+        struct shmcache_object_pool_context *op)
+{
+    int64_t allocator_offset;
+    struct shm_striping_allocator *allocator;
+
+    allocator_offset = shm_object_pool_first(op);
+    while (allocator_offset > 0) {
+        allocator = (struct shm_striping_allocator *)(context->segments.
+                hashtable.base + allocator_offset);
+
+        logInfo("allocator %"PRId64" first_alloc_time: %d, fail_times: %d, in_which_pool: %d, "
+                "segment: %d, striping: %d, base: %"PRId64
+                ", total: %d, used: %d",
+                allocator_offset, allocator->first_alloc_time,
+                allocator->fail_times, allocator->in_which_pool,
+                allocator->index.segment, allocator->index.striping,
+                allocator->offset.base, allocator->size.total,
+                allocator->size.used);
+
+        allocator_offset = shm_object_pool_next(op);
+    }
 }
 
 int shmcache_init(struct shmcache_context *context,
@@ -277,9 +319,11 @@ int shmcache_init(struct shmcache_context *context,
     memset(context->segments.values.items, 0, bytes);
 
     context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
-    shmcache_set_obj_allocators(context, ht_offsets);
+
+    logInfo("context->memory->hashtable.count: %d", context->memory->hashtable.count);
     shm_list_set(&context->list, context->segments.hashtable.base,
             &context->memory->hashtable.head);
+    shmcache_set_obj_allocators(context, ht_offsets);
 
     if (context->memory->status == SHMCACHE_STATUS_INIT) {
         result = shmcache_do_lock_init(context, ht_capacity, &segment,
@@ -305,6 +349,43 @@ int shmcache_init(struct shmcache_context *context,
             "doing count: %d, done count: %d", __LINE__,
             shm_object_pool_get_count(&context->value_allocator.doing),
             shm_object_pool_get_count(&context->value_allocator.done));
+
+    print_value_allocator(context, &context->value_allocator.doing);
+    print_value_allocator(context, &context->value_allocator.done);
+
+    {
+        struct shm_hash_entry *current;
+        struct shmcache_buffer key;
+        struct shmcache_buffer value;
+        int ii;
+
+        logInfo("list count: %d", shm_list_count(&context->list));
+        ii = 0;
+        SHM_LIST_FOR_EACH(&context->list, current, list) {
+
+            key.data = current->key;
+            key.length = current->key_len;
+
+            if (shm_ht_get(context, &key, &value) != 0) {
+                logError("#%d. shm_ht_get key: %.*s fail, offset: %"PRId64,
+                        ii, key.length, key.data,
+                        (char *)current - context->segments.hashtable.base);
+                break;
+            }
+            ii++;
+
+            /*
+            logInfo("segment: %d, striping: %d, offset: %"PRId64
+                    ", size: %d, length: %d",
+                    current->value.index.segment,
+                    current->value.index.striping, 
+                    current->value.offset, 
+                    current->value.size, 
+                    current->value.length);
+            break;
+            */
+        }
+    }
 
     return result;
 }

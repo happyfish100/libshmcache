@@ -16,14 +16,15 @@
 #include <string.h>
 #include <pthread.h>
 #include "common_define.h"
+#include "logger.h"
 #include "shmcache_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SHM_LIST_PTR(list, offset) \
-    ((struct shm_list *)(list->base + offset))
+#define SHM_LIST_PTR(list, offset) ((struct shm_list *)((list)->base + offset))
+#define SHM_LIST_TYPE_PTR(list, type, offset) ((type *)((list)->base + offset))
 
 /**
 list set
@@ -80,6 +81,13 @@ static inline void shm_list_remove(struct shmcache_list *list, int64_t obj_offse
     struct shm_list *node;
 
     node = SHM_LIST_PTR(list, obj_offset);
+    if (node->next == obj_offset) {
+        logError("file: "__FILE__", line: %d, "
+                "do NOT need remove from list, obj: %"PRId64,
+                __LINE__, obj_offset);
+        return;
+    }
+
     SHM_LIST_PTR(list, node->prev)->next = node->next;
     SHM_LIST_PTR(list, node->next)->prev = node->prev;
     node->prev = node->next = obj_offset;
@@ -94,7 +102,7 @@ return first object offset
 static inline int64_t shm_list_pop(struct shmcache_list *list)
 {
     int64_t obj_offset;
-    if (list->head.ptr->next == list->head.ptr->prev) {  //empty
+    if (list->head.ptr->next == list->head.offset) {  //empty
         return 0;
     }
 
@@ -111,12 +119,57 @@ return first object offset
 */
 static inline int64_t shm_list_first(struct shmcache_list *list)
 {
-    if (list->head.ptr->next == list->head.ptr->prev) {  //empty
+    if (list->head.ptr->next == list->head.offset) {  //empty
         return 0;
     }
 
     return list->head.ptr->next;
 }
+
+/**
+get next element
+parameters:
+	list: the list
+return next object offset
+*/
+static inline int64_t shm_list_next(struct shmcache_list *list,
+        const int64_t current_offset)
+{
+    struct shm_list *node;
+    node = SHM_LIST_PTR(list, current_offset);
+    if (node->next == list->head.offset) {
+        return 0;
+    }
+    return node->next;
+}
+
+/**
+get count
+parameters:
+	list: the list
+return count
+*/
+static inline int shm_list_count(struct shmcache_list *list)
+{
+    int64_t offset;
+    int count;
+
+    count = 0;
+    offset = list->head.ptr->next;
+    while (offset != list->head.offset) {
+        count++;
+        offset = SHM_LIST_PTR(list, offset)->next;
+    }
+
+    return count;
+}
+
+#define SHM_LIST_FOR_EACH(list, current, member) \
+    for (current=SHM_LIST_TYPE_PTR(list, typeof(*current),    \
+                (list)->head.ptr->next);                      \
+            &current->member != (list)->head.ptr;             \
+            current=SHM_LIST_TYPE_PTR(list, typeof(*current), \
+                current->member.next))
 
 #ifdef __cplusplus
 }

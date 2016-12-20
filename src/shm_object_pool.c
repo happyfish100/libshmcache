@@ -21,7 +21,7 @@ void shm_object_pool_init_full(struct shmcache_object_pool_context *op)
     int64_t *end;
     int64_t offset;
 
-    end = op->offsets + op->obj_pool_info->queue.capacity;
+    end = op->offsets + (op->obj_pool_info->queue.capacity - 1);
     offset = op->obj_pool_info->object.base_offset;
     for (p=op->offsets; p<end; p++) {
         *p = offset;
@@ -29,7 +29,7 @@ void shm_object_pool_init_full(struct shmcache_object_pool_context *op)
     }
 
     op->obj_pool_info->queue.head = 0;
-    op->obj_pool_info->queue.tail = op->obj_pool_info->queue.capacity;
+    op->obj_pool_info->queue.tail = op->obj_pool_info->queue.capacity - 1;
 
     logInfo("function: %s, op: %p, head: %d, tail: %d",
             __FUNCTION__, op, op->obj_pool_info->queue.head,
@@ -68,7 +68,7 @@ int64_t shm_object_pool_alloc(struct shmcache_object_pool_context *op)
     op->obj_pool_info->queue.head = (op->obj_pool_info->queue.head + 1) %
         op->obj_pool_info->queue.capacity;
 
-    logInfo("function: %s, op: %p, head: %d, obj_offset: %"PRId64,
+    logDebug("function: %s, op: %p, head: %d, obj_offset: %"PRId64,
             __FUNCTION__, op, op->obj_pool_info->queue.head, obj_offset);
     return obj_offset;
 }
@@ -85,11 +85,14 @@ int shm_object_pool_free(struct shmcache_object_pool_context *op,
     op->offsets[op->obj_pool_info->queue.tail] = obj_offset;
     op->obj_pool_info->queue.tail = next_tail;
 
-    logInfo("function: %s, op: %p, tail: %d, obj_offset: %"PRId64,
+    logDebug("function: %s, op: %p, tail: %d, obj_offset: %"PRId64,
             __FUNCTION__, op, next_tail, obj_offset);
 
     return 0;
 }
+
+#define SHM_OP_DEC_INDEX(index, capacity)       \
+    (index == 0 ? (capacity - 1) : (index - 1))
 
 int64_t shm_object_pool_remove(struct shmcache_object_pool_context *op)
 {
@@ -104,14 +107,14 @@ int64_t shm_object_pool_remove(struct shmcache_object_pool_context *op)
     }
 
     if (op->index == op->obj_pool_info->queue.tail) {
-        index = (op->obj_pool_info->queue.tail - 1) %
-            op->obj_pool_info->queue.capacity;
+        index = SHM_OP_DEC_INDEX(op->obj_pool_info->queue.tail,
+                op->obj_pool_info->queue.capacity);
     } else {
         index = op->index;
     }
     current = index;
     while (current != op->obj_pool_info->queue.head) {
-        previous = (current - 1) % op->obj_pool_info->queue.capacity;
+        previous = SHM_OP_DEC_INDEX(current, op->obj_pool_info->queue.capacity);
         op->offsets[current] = op->offsets[previous];
         current = previous;
     }
