@@ -66,7 +66,7 @@ parameters:
 return used size
 */
 static inline int64_t shm_striping_allocator_free(struct shm_striping_allocator
-        *allocator, const int size)
+        *allocator, const int64_t offset, const int size)
 {
     allocator->size.used -= size;
     return allocator->size.used;

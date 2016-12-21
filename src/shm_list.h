@@ -63,9 +63,9 @@ static inline void shm_list_add_tail(struct shmcache_list *list, int64_t obj_off
     struct shm_list *node;
 
     node = SHM_LIST_PTR(list, obj_offset);
-    SHM_LIST_PTR(list, list->head.ptr->prev)->next = obj_offset;
-    node->prev = list->head.ptr->prev;
     node->next = list->head.offset;
+    node->prev = list->head.ptr->prev;
+    SHM_LIST_PTR(list, list->head.ptr->prev)->next = obj_offset;
     list->head.ptr->prev = obj_offset;
 }
 
@@ -76,7 +76,7 @@ parameters:
     obj_offset: the object offset
 return none
 */
-static inline void shm_list_remove(struct shmcache_list *list, int64_t obj_offset)
+static inline void shm_list_delete(struct shmcache_list *list, int64_t obj_offset)
 {
     struct shm_list *node;
 
@@ -94,21 +94,14 @@ static inline void shm_list_remove(struct shmcache_list *list, int64_t obj_offse
 }
 
 /**
-pop an element from list
+is empty
 parameters:
 	list: the list
-return first object offset
+return true for empty, false for NOT empty
 */
-static inline int64_t shm_list_pop(struct shmcache_list *list)
+static inline bool shm_list_empty(struct shmcache_list *list)
 {
-    int64_t obj_offset;
-    if (list->head.ptr->next == list->head.offset) {  //empty
-        return 0;
-    }
-
-    obj_offset = list->head.ptr->next;
-    shm_list_remove(list, obj_offset);
-    return obj_offset;
+    return (list->head.ptr->next == list->head.offset);
 }
 
 /**

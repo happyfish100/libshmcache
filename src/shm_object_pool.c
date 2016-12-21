@@ -1,7 +1,7 @@
 //shm_object_pool.c
 
 #include <errno.h>
-#include <sys/resource.h>
+#include <assert.h>
 #include <pthread.h>
 #include "logger.h"
 #include "shm_object_pool.h"
@@ -100,18 +100,19 @@ int64_t shm_object_pool_remove(struct shmcache_object_pool_context *op)
     int previous;
     int current;
 
-    if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail
-            || op->index < 0)
-    {
+    assert(op->index != op->obj_pool_info->queue.tail);
+    if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
+        logError("file: "__FILE__", line: %d, "
+                "object pool is empty", __LINE__);
+        return -1;
+    }
+    if (op->index < 0) {
+        logError("file: "__FILE__", line: %d, "
+                "current index: %d < 0", __LINE__, op->index);
         return -1;
     }
 
-    if (op->index == op->obj_pool_info->queue.tail) {
-        index = SHM_OP_DEC_INDEX(op->obj_pool_info->queue.tail,
-                op->obj_pool_info->queue.capacity);
-    } else {
-        index = op->index;
-    }
+    index = op->index;
     current = index;
     while (current != op->obj_pool_info->queue.head) {
         previous = SHM_OP_DEC_INDEX(current, op->obj_pool_info->queue.capacity);

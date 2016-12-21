@@ -91,9 +91,9 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     total_size = sizeof(struct shm_memory_info);
 
     logInfo("ht capacity: %d, sizeof(struct shm_memory_info): %d, "
-            "context->config.max_key_count: %d",
+            "context->config.max_key_count: %d, striping->count.max: %d",
             *ht_capacity, (int)sizeof(struct shm_memory_info),
-            context->config.max_key_count);
+            context->config.max_key_count, striping->count.max);
 
     ht_offsets[OFFSETS_INDEX_HT_BUCKETS] = total_size;
     total_size += shm_ht_get_memory_size(*ht_capacity);
@@ -246,7 +246,9 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
     {
         struct shm_striping_allocator *allocator;
         struct shm_striping_allocator *end;
+        int64_t bytes;
 
+    bytes = 0;
         end = context->value_allocator.allocators +
             context->memory->vm_info.striping.count.current;
         for (allocator=context->value_allocator.allocators; allocator<end; allocator++) {
@@ -256,8 +258,9 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
                     allocator->in_which_pool, allocator->offset.base,
                     shm_striping_allocator_free_size(allocator),
                     shm_striping_allocator_used_size(allocator));
+            bytes += allocator->size.used;
         }
-
+        logInfo("striping used bytes: %"PRId64, bytes);
     }
 }
 
@@ -357,20 +360,26 @@ int shmcache_init(struct shmcache_context *context,
         struct shm_hash_entry *current;
         struct shmcache_buffer key;
         struct shmcache_buffer value;
+        int64_t bytes;
         int ii;
 
         logInfo("list count: %d", shm_list_count(&context->list));
         ii = 0;
+        bytes = 0;
         SHM_LIST_FOR_EACH(&context->list, current, list) {
 
             key.data = current->key;
             key.length = current->key_len;
 
             if (shm_ht_get(context, &key, &value) != 0) {
-                logError("#%d. shm_ht_get key: %.*s fail, offset: %"PRId64,
+                logError("#%d. shm_ht_get key: %.*s fail, offset: %"PRId64
+                        ", value striping: %d, value offset: %"PRId64", size: %d",
                         ii, key.length, key.data,
-                        (char *)current - context->segments.hashtable.base);
-                break;
+                        (char *)current - context->segments.hashtable.base,
+                        current->value.index.striping, current->value.offset,
+                        current->value.length);
+            } else {
+                bytes += value.length;
             }
             ii++;
 
@@ -385,6 +394,7 @@ int shmcache_init(struct shmcache_context *context,
             break;
             */
         }
+        logInfo("hash table used bytes: %"PRId64, bytes);
     }
 
     return result;

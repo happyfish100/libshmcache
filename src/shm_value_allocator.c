@@ -173,7 +173,7 @@ int shm_value_allocator_free(struct shmcache_context *context,
     int64_t used;
 
     allocator = context->value_allocator.allocators + value->index.striping;
-    used = shm_striping_allocator_free(allocator, value->size);
+    used = shm_striping_allocator_free(allocator, value->offset, value->size);
     if (used <= 0) {
         if (used < 0) {
             logError("file: "__FILE__", line: %d, "

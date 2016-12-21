@@ -91,7 +91,7 @@ int shm_ht_set(struct shmcache_context *context,
                     logInfo("#######NO replace: %.*s, entry offset: %"PRId64,
                             key->length, key->data, entry_offset);
                     entry->expires = HT_CALC_EXPIRES(ttl);
-                    //shm_list_remove(&context->list, entry_offset);
+                    //shm_list_delete(&context->list, entry_offset);
                     //shm_list_add_tail(&context->list, entry_offset);
                     return 0;
                 }
@@ -127,7 +127,7 @@ int shm_ht_set(struct shmcache_context *context,
     if (found) {
         bool recycled;
         shm_value_allocator_free(context, &entry->value, &recycled);
-        shm_list_remove(&context->list, entry_offset);
+        shm_list_delete(&context->list, entry_offset);
     }
 
     hvalue = shm_ht_get_value_ptr(context, &new_value);
@@ -209,7 +209,7 @@ int shm_ht_delete_ex(struct shmcache_context *context,
             }
 
             shm_value_allocator_free(context, &entry->value, recycled);
-            shm_list_remove(&context->list, entry_offset);
+            shm_list_delete(&context->list, entry_offset);
             shm_object_pool_free(&context->hentry_allocator, entry_offset);
             context->memory->hashtable.count--;
             result = 0;
