@@ -35,6 +35,16 @@ int shmcache_init(struct shmcache_context *context,
 		struct shmcache_config *config);
 
 /**
+context init from config file
+parameters:
+	context: the context pointer
+    config_filename: the config filename
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_init_from_file(struct shmcache_context *context,
+		const char *config_filename);
+
+/**
 context destroy
 parameters:
 	context: the context pointer

@@ -5,9 +5,11 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dlfcn.h>
 #include <pthread.h>
 #include "logger.h"
 #include "shared_func.h"
+#include "ini_file_reader.h"
 #include "shm_hashtable.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
@@ -431,6 +433,164 @@ int shmcache_init(struct shmcache_context *context,
     return result;
 }
 
+int64_t shmcache_parse_bytes(IniContext *iniContext,
+        const char *config_filename, const char *name, int *result)
+{
+    char *value;
+    int64_t size;
+
+    value = iniGetStrValue(NULL, name, iniContext);
+    if (value == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "config file: %s, item \"%s\" is not exists",
+                __LINE__, config_filename, name);
+        *result = ENOENT;
+        return -1;
+    }
+    if ((*result=parse_bytes(value, 1, &size)) != 0) {
+        return -1;
+    }
+    if (size <= 0) {
+        logError("file: "__FILE__", line: %d, "
+                "config file: %s, item \"%s\": %"PRId64" is invalid",
+                __LINE__, config_filename, name, size);
+        *result = EINVAL;
+        return -1;
+    }
+    return size;
+}
+
+int shmcache_init_from_file(struct shmcache_context *context,
+		const char *config_filename)
+{
+    int result;
+    struct shmcache_config config;
+    IniContext iniContext;
+    char *type;
+    char *filename;
+    char *hash_function;
+
+    if ((result=iniLoadFromFile(config_filename, &iniContext)) != 0) {
+        return result;
+    }
+
+    do {
+        type = iniGetStrValue(NULL, "type", &iniContext);
+        if (type == NULL || strcasecmp(type, "shm") == 0) {
+            config.type = SHMCACHE_TYPE_SHM;
+        } else {
+            config.type = SHMCACHE_TYPE_MMAP;
+        }
+
+        filename = iniGetStrValue(NULL, "filename", &iniContext);
+        if (filename == NULL || *filename == '\0') {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, item \"filename\" is not exists",
+                    __LINE__, config_filename);
+            result = ENOENT;
+            break;
+        }
+        snprintf(config.filename, sizeof(config.filename),
+                "%s", filename);
+
+        config.max_memory = shmcache_parse_bytes(&iniContext,
+                config_filename, "max_memory", &result);
+        if (result != 0) {
+            break;
+        }
+
+        config.segment_size = shmcache_parse_bytes(&iniContext,
+                config_filename, "segment_size", &result);
+        if (result != 0) {
+            break;
+        }
+
+        config.max_key_count = iniGetIntValue(NULL, "max_key_count",
+                &iniContext, 0);
+        if (config.max_key_count <= 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, item \"max_key_count\" "
+                    "is not exists or invalid",
+                    __LINE__, config_filename);
+            result = EINVAL;
+            break;
+        }
+
+        config.max_value_size = shmcache_parse_bytes(&iniContext,
+                config_filename, "max_value_size", &result);
+        if (result != 0) {
+            break;
+        }
+
+        hash_function = iniGetStrValue(NULL, "hash_function", &iniContext);
+        if (hash_function == NULL || *hash_function  == '\0') {
+            config.hash_func = simple_hash;
+        } else {
+            void *handle;
+            handle = dlopen(NULL, RTLD_LAZY);
+            if (handle == NULL) {
+                logError("file: "__FILE__", line: %d, "
+                        "call dlopen fail, error: %s",
+                        __LINE__, dlerror());
+                result = EBUSY;
+                break;
+            }
+            config.hash_func = (HashFunc)dlsym(handle, hash_function);
+            if (config.hash_func == NULL) {
+                logError("file: "__FILE__", line: %d, "
+                        "call dlsym %s fail, error: %s",
+                        __LINE__, hash_function, dlerror());
+                result = ENOENT;
+                break;
+            }
+            dlclose(handle);
+        }
+
+        config.va_policy.avg_key_ttl = iniGetIntValue(NULL,
+                "value_policy.avg_key_ttl", &iniContext, 0);
+
+        config.va_policy.discard_memory_size = shmcache_parse_bytes(
+                &iniContext, config_filename,
+                "value_policy.discard_memory_size", &result);
+        if (result != 0) {
+            break;
+        }
+
+        config.va_policy.max_fail_times = iniGetIntValue(NULL,
+                "value_policy.max_fail_times", &iniContext, 10);
+        config.lock_policy.trylock_interval_us = iniGetIntValue(NULL,
+                "lock_policy.trylock_interval_us", &iniContext, 200);
+        if (config.lock_policy.trylock_interval_us <= 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, item "
+                    "\"lock_policy.trylock_interval_us\" "
+                    "is not exists or invalid",
+                    __LINE__, config_filename);
+            result = EINVAL;
+            break;
+        }
+
+        config.lock_policy.detect_deadlock_interval_ms = iniGetIntValue(
+                NULL, "lock_policy.detect_deadlock_interval_ms",
+                &iniContext, 1000);
+        if (config.lock_policy.detect_deadlock_interval_ms <= 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, item "
+                    "\"lock_policy.detect_deadlock_interval_ms\" "
+                    "is not exists or invalid",
+                    __LINE__, config_filename);
+            result = EINVAL;
+            break;
+        }
+    } while (0);
+
+    iniFreeContext(&iniContext);
+    if (result != 0) {
+        return result;
+    }
+    return shmcache_init(context, &config);
+}
+
 void shmcache_destroy(struct shmcache_context *context)
 {
 }
@@ -444,7 +604,11 @@ int shmcache_set(struct shmcache_context *context,
     if ((result=shm_lock(context)) != 0) {
         return result;
     }
+    context->memory->stats.hashtable.set.total++;
     result = shm_ht_set(context, key, value, ttl);
+    if (result == 0) {
+        context->memory->stats.hashtable.set.success++;
+    }
     shm_unlock(context);
     return result;
 }
@@ -453,7 +617,14 @@ int shmcache_get(struct shmcache_context *context,
         const struct shmcache_buffer *key,
         struct shmcache_buffer *value)
 {
-    return shm_ht_get(context, key, value);
+    int result;
+
+    __sync_add_and_fetch(&context->memory->stats.hashtable.get.total, 1);
+    result = shm_ht_get(context, key, value);
+    if (result == 0) {
+        __sync_add_and_fetch(&context->memory->stats.hashtable.get.success, 1);
+    }
+    return result;
 }
 
 int shmcache_delete(struct shmcache_context *context,
@@ -463,7 +634,11 @@ int shmcache_delete(struct shmcache_context *context,
     if ((result=shm_lock(context)) != 0) {
         return result;
     }
+    context->memory->stats.hashtable.del.total++;
     result = shm_ht_delete(context, key);
+    if (result == 0) {
+        context->memory->stats.hashtable.del.success++;
+    }
     shm_unlock(context);
     return result;
 }

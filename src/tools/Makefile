@@ -2,7 +2,7 @@
 
 COMPILE = $(CC) -g -O1 -Wall -D_FILE_OFFSET_BITS=64 -g -DDEBUG_FLAG
 INC_PATH = -I/usr/include/fastcommon -I/usr/include/shmcache
-LIB_PATH = -lfastcommon -lshmcache -lpthread
+LIB_PATH = -lfastcommon -lshmcache -lpthread -ldl
 TARGET_PATH = /usr/bin
 
 TARGET_PRGS = shmcache_remove shmcache_set shmcache_get

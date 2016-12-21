@@ -155,13 +155,30 @@ struct shm_lock {
     pthread_mutex_t mutex;
 };
 
+struct shm_counter {
+    volatile int64_t total;
+    volatile int64_t success;
+};
+
+struct shm_stats {
+    struct {
+        struct shm_counter set;
+        struct shm_counter get;
+        struct shm_counter del;
+    } hashtable;
+
+    struct {
+        struct shm_counter recycle;
+    } memory;
+};
+
 struct shm_memory_info {
-    //int version;
     int status;
     struct shm_lock lock;
     struct shm_value_memory_info vm_info;  //value memory info
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
+    struct shm_stats stats;
     struct shm_hashtable hashtable;   //must be last
 };
 
@@ -217,10 +234,7 @@ struct shmcache_context {
 };
 
 struct shmcache_stats {
-    struct {
-        int64_t total;
-        int64_t used;
-    } value_memory;
+    struct shm_stats shm;
 };
 
 #ifdef __cplusplus

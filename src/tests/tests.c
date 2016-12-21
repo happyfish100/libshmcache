@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
 #define MAX_VALUE_SIZE  (1 * 1024)
 
 	int result;
-    struct shmcache_config config;
     struct shmcache_context context;
     struct shmcache_buffer key;
     struct shmcache_buffer value;
@@ -32,24 +31,9 @@ int main(int argc, char *argv[])
     printf("sizeof(struct shm_hash_entry): %d\n",
             (int)sizeof(struct shm_hash_entry));
 
-    memset(&config, 0, sizeof(config));
-
-    strcpy(config.filename, "/tmp/shmcache.dat");
-    config.max_memory = 4 * 1024 * 1024;
-    config.segment_size = 1 * 1024 * 1024;
-    config.max_key_count = 10000;
-    config.max_value_size = 64 * 1024;
-    config.type = SHMCACHE_TYPE_SHM;  //shm or mmap
-
-    config.va_policy.avg_key_ttl = 600;
-    config.va_policy.discard_memory_size = 128;
-    config.va_policy.max_fail_times = 5;
-
-    config.lock_policy.trylock_interval_us = 1000;
-    config.lock_policy.detect_deadlock_interval_ms = 1000;
-    config.hash_func = simple_hash;
-
-    if ((result=shmcache_init(&context, &config)) != 0) {
+    if ((result=shmcache_init_from_file(&context,
+                    "../conf/libshmcache.conf")) != 0)
+    {
         return result;
     }
 
@@ -57,7 +41,7 @@ int main(int argc, char *argv[])
     memset(szValue, 'A', sizeof(szValue));
     key.data = szKey;
     value.data = szValue;
-    for (i=0; i<102400; i++) {
+    for (i=0; i<10000; i++) {
         key.length = sprintf(key.data, "key_%04d", i + 1);
         value.length = (MAX_VALUE_SIZE * (int64_t)rand()) / (int64_t)RAND_MAX;
         result = shmcache_set(&context, &key, &value, ttl);

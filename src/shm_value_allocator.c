@@ -152,7 +152,11 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
     }
 
     if (recycle ) {
+        context->memory->stats.memory.recycle.total++;
         result = shm_value_allocator_recycle(context);
+        if (result == 0) {
+            context->memory->stats.memory.recycle.success++;
+        }
     } else {
         result = shmopt_create_value_segment(context);
     }
@@ -173,7 +177,7 @@ int shm_value_allocator_free(struct shmcache_context *context,
     int64_t used;
 
     allocator = context->value_allocator.allocators + value->index.striping;
-    used = shm_striping_allocator_free(allocator, value->offset, value->size);
+    used = shm_striping_allocator_free(allocator, value->size);
     if (used <= 0) {
         if (used < 0) {
             logError("file: "__FILE__", line: %d, "
