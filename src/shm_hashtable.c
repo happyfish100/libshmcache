@@ -62,14 +62,22 @@ int shm_ht_set(struct shmcache_context *context,
     struct shm_hash_entry *entry;
     struct shm_hash_entry *previous;
     char *hvalue;
+    struct shm_value old_value;
     struct shm_value new_value;
     bool found;
+    bool recycled;
 
     if (key->length > SHMCACHE_MAX_KEY_SIZE) {
 		logError("file: "__FILE__", line: %d, "
                 "invalid key length: %d exceeds %d", __LINE__,
                 key->length, SHMCACHE_MAX_KEY_SIZE);
         return ENAMETOOLONG;
+    }
+
+    if ((result=shm_value_allocator_alloc(context, value->length,
+                    &new_value)) != 0)
+    {
+       return result;
     }
 
     previous = NULL;
@@ -81,22 +89,6 @@ int shm_ht_set(struct shmcache_context *context,
     while (entry_offset > 0) {
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
-
-    //logDebug("function: %s, index: %d, found entry_offset: %"PRId64, __FUNCTION__, index, entry_offset);
-
-            /*
-            hvalue = shm_ht_get_value_ptr(context, &entry->value);
-            if (hvalue != NULL) {
-                if (HT_VALUE_EQUALS(hvalue, entry->value.length, value)) {
-                    logInfo("#######NO replace: %.*s, entry offset: %"PRId64,
-                            key->length, key->data, entry_offset);
-                    entry->expires = HT_CALC_EXPIRES(ttl);
-                    //shm_list_delete(&context->list, entry_offset);
-                    //shm_list_add_tail(&context->list, entry_offset);
-                    return 0;
-                }
-            }
-            */
             found = true;
             break;
         }
@@ -107,27 +99,15 @@ int shm_ht_set(struct shmcache_context *context,
 
     if (!found) {
        entry_offset = shm_object_pool_alloc(&context->hentry_allocator);
-       if (entry_offset < 0) {
+       if (entry_offset <= 0) {
+           shm_value_allocator_free(context, &new_value, &recycled);
             logError("file: "__FILE__", line: %d, "
                     "alloc hash entry from shm fail", __LINE__);
            return ENOMEM;
        }
        entry = HT_ENTRY_PTR(context, entry_offset);
-    }
-
-    if ((result=shm_value_allocator_alloc(context, value->length,
-                    &new_value)) != 0)
-    {
-        if (!found) {  //rollback
-            shm_object_pool_free(&context->hentry_allocator, entry_offset);
-        }
-        return result;
-    }
-
-    if (found) {
-        bool recycled;
-        shm_value_allocator_free(context, &entry->value, &recycled);
-        shm_list_delete(&context->list, entry_offset);
+    } else {
+        old_value = entry->value;
     }
 
     hvalue = shm_ht_get_value_ptr(context, &new_value);
@@ -136,11 +116,14 @@ int shm_ht_set(struct shmcache_context *context,
 
     entry->value = new_value;
     entry->expires = HT_CALC_EXPIRES(ttl);
-    shm_list_add_tail(&context->list, entry_offset);
-
     if (found) {
+        shm_value_allocator_free(context, &old_value, &recycled);
+        shm_list_delete(&context->list, entry_offset);
+        shm_list_add_tail(&context->list, entry_offset);
         return 0;
     }
+
+    shm_list_add_tail(&context->list, entry_offset);
 
     memcpy(entry->key, key->data, key->length);
     entry->key_len = key->length;
@@ -151,8 +134,6 @@ int shm_ht_set(struct shmcache_context *context,
         context->memory->hashtable.buckets[index] = entry_offset;
     }
     context->memory->hashtable.count++;
-
-    logDebug("index: %d, context->memory->hashtable.count: %d", index, context->memory->hashtable.count);
 
     return 0;
 }
@@ -167,7 +148,6 @@ int shm_ht_get(struct shmcache_context *context,
 
     index = HT_GET_BUCKET_INDEX(context, key);
     entry_offset = context->memory->hashtable.buckets[index];
-    //logDebug("function: %s, index: %d, entry_offset: %"PRId64, __FUNCTION__, index, entry_offset);
     while (entry_offset > 0) {
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
@@ -210,6 +190,7 @@ int shm_ht_delete_ex(struct shmcache_context *context,
 
             shm_value_allocator_free(context, &entry->value, recycled);
             shm_list_delete(&context->list, entry_offset);
+            entry->ht_next = 0;
             shm_object_pool_free(&context->hentry_allocator, entry_offset);
             context->memory->hashtable.count--;
             result = 0;

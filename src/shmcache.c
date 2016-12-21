@@ -119,6 +119,8 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     total_size += shm_object_pool_get_object_memory_size(
             sizeof(struct shm_striping_allocator), striping->count.max);
 
+    logInfo("hentry queue base offset: %"PRId64", object base: %"PRId64,
+            ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE], ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT]);
     return total_size;
 }
 
@@ -328,6 +330,10 @@ int shmcache_init(struct shmcache_context *context,
             &context->memory->hashtable.head);
     shmcache_set_obj_allocators(context, ht_offsets);
 
+    logInfo("head offset: %ld, hash buckets: %ld",
+            (char *)&context->memory->hashtable.head - context->segments.hashtable.base,
+            (char *)context->memory->hashtable.buckets - context->segments.hashtable.base);
+
     if (context->memory->status == SHMCACHE_STATUS_INIT) {
         result = shmcache_do_lock_init(context, ht_capacity, &segment,
                 &striping, ht_offsets);
@@ -349,9 +355,12 @@ int shmcache_init(struct shmcache_context *context,
     result = shmopt_open_value_segments(context);
 
     logInfo("file: "__FILE__", line: %d, "
-            "doing count: %d, done count: %d", __LINE__,
+            "doing count: %d, done count: %d, hentry free count: %d, "
+            "total entry count: %d", __LINE__,
             shm_object_pool_get_count(&context->value_allocator.doing),
-            shm_object_pool_get_count(&context->value_allocator.done));
+            shm_object_pool_get_count(&context->value_allocator.done),
+            shm_object_pool_get_count(&context->hentry_allocator),
+            shm_object_pool_get_count(&context->hentry_allocator) + context->memory->hashtable.count);
 
     print_value_allocator(context, &context->value_allocator.doing);
     print_value_allocator(context, &context->value_allocator.done);
@@ -396,6 +405,28 @@ int shmcache_init(struct shmcache_context *context,
         }
         logInfo("hash table used bytes: %"PRId64, bytes);
     }
+
+#if 0
+    /*
+    {
+        unsigned int index;
+        int k;
+        int64_t entry_offset;
+        struct shm_hash_entry *entry;
+
+        k = 0;
+        for (index=0; index<context->memory->hashtable.capacity; index++) {
+            entry_offset = context->memory->hashtable.buckets[index];
+            while (entry_offset > 0) {
+                logInfo("%d. %"PRId64, k++, entry_offset);
+                entry = HT_ENTRY_PTR(context, entry_offset);
+                entry_offset = entry->ht_next;
+            }
+        }
+    }
+    */
+
+#endif
 
     return result;
 }
