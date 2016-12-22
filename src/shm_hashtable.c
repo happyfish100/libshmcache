@@ -80,6 +80,14 @@ int shm_ht_set(struct shmcache_context *context,
         return EINVAL;
     }
 
+    if (context->memory->hashtable.count >= context->config.max_key_count) {
+        if ((result=shm_value_allocator_recycle(context, &context->memory->
+                        stats.memory.recycle.key, true)) != 0)
+        {
+            return result;
+        }
+    }
+
     if (!g_schedule_flag) {
         g_current_time = time(NULL);
     }

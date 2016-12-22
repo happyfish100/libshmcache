@@ -102,6 +102,7 @@ int shmopt_create_value_segment(struct shmcache_context *context)
         striping_offset += context->memory->vm_info.striping.size;
     }
     context->segments.values.count = segment_index + 1;
+    context->memory->stats.memory.alloced += context->memory->vm_info.segment.size;
 
     logInfo("file: "__FILE__", line: %d, pid: %d, "
             "create value segment #%d, size: %"PRId64,

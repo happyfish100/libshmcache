@@ -25,7 +25,7 @@ extern "C" {
 /**
 alloc memory from the allocator
 parameters:
-	allocator: the shm context
+	context: the shm context
     size: alloc bytes
     value: return the value
 return error no, 0 for success, != 0 fail
@@ -36,13 +36,24 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
 /**
 free memory to the allocator
 parameters:
-	allocator: the shm context
+	context: the shm context
     value:  the value to free
     recycled: if recycled
 return error no, 0 for success, != 0 fail
 */
 int shm_value_allocator_free(struct shmcache_context *context,
         struct shm_value *value, bool *recycled);
+
+/**
+recycle oldest hashtable entries
+parameters:
+	context: the shm context
+    recycle_counter: the recycle counter
+    once: if recycle only one ht entry
+return error no, 0 for success, != 0 fail
+*/
+int shm_value_allocator_recycle(struct shmcache_context *context,
+        struct shm_recycle_counter *recycle_counter, const bool once);
 
 #ifdef __cplusplus
 }

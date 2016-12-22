@@ -166,6 +166,12 @@ struct shm_counter {
     volatile int64_t success;
 };
 
+struct shm_recycle_counter {
+    int64_t total;   //total count
+    int64_t success; //succes count
+    int64_t force;  //force recycle count (clear valid entries)
+};
+
 struct shm_stats {
     struct {
         struct shm_counter set;
@@ -174,11 +180,17 @@ struct shm_stats {
     } hashtable;
 
     struct {
-        int64_t recycle_valid_entry_count;
+        int64_t alloced;
+        int64_t used;
+
         struct {
             int64_t total;
-            int64_t success;
-            int64_t force;  //force recycle (clear valid entries)
+            int64_t valid;
+        } clear_ht_entry;  //clear for recycle
+
+        struct {
+            struct shm_recycle_counter key;
+            struct shm_recycle_counter value;
         } recycle;
     } memory;
 };
@@ -247,6 +259,10 @@ struct shmcache_context {
 
 struct shmcache_stats {
     struct shm_stats shm;
+    struct {
+        int64_t segment_size;  //segment memory size
+        int count;  //key count
+    } hashtable;
 };
 
 #ifdef __cplusplus

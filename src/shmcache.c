@@ -31,25 +31,29 @@
 #define OFFSETS_COUNT                       6
 
 static void get_value_segment_count_size(struct shmcache_config *config,
-        struct shm_value_size_info *segment)
+        const int64_t value_max_memory, struct shm_value_size_info *segment)
 {
     int page_size;
 
     page_size = getpagesize();
     segment->size = SHMCACE_MEM_ALIGN(config->segment_size, page_size);
-    segment->count.max = config->max_memory / segment->size;
+    segment->count.max = value_max_memory / segment->size;
     if (segment->count.max == 0) {
         segment->count.max = 1;
     }
     segment->count.current = 0;
 }
 
-static void get_value_striping_count_size(const int max_value_size,
-        const struct shm_value_size_info *segment,
+static void get_value_striping_count_size(
+        struct shmcache_config *config,
+        const int64_t value_max_memory,
+        struct shm_value_size_info *segment,
         struct shm_value_size_info *striping)
 {
     int page_size;
     int mb_count;
+
+    get_value_segment_count_size(config, value_max_memory, segment);
 
     page_size = getpagesize();
     mb_count = segment->size / (128 * 1024 * 1024);
@@ -66,8 +70,8 @@ static void get_value_striping_count_size(const int max_value_size,
     }
 
     striping->size = mb_count * 1024 * 1024;
-    if (striping->size < max_value_size * 2) {
-        striping->size = max_value_size * 2;
+    if (striping->size < config->max_value_size * 2) {
+        striping->size = config->max_value_size * 2;
     }
     striping->size = SHMCACE_MEM_ALIGN(striping->size, page_size);
     if (striping->size > segment->size) {
@@ -85,8 +89,7 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     int64_t total_size;
     int64_t va_pool_queue_memory_size;
 
-    get_value_segment_count_size(&context->config, segment);
-    get_value_striping_count_size(context->config.max_value_size,
+    get_value_striping_count_size(&context->config, context->config.max_memory,
             segment, striping);
 
     *ht_capacity = shm_ht_get_capacity(context->config.max_key_count + 1);
@@ -120,6 +123,10 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT] = total_size;
     total_size += shm_object_pool_get_object_memory_size(
             sizeof(struct shm_striping_allocator), striping->count.max);
+
+    get_value_striping_count_size(&context->config,
+            context->config.max_memory - total_size,
+            segment, striping);
 
     logInfo("hentry queue base offset: %"PRId64", object base: %"PRId64,
             ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE], ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT]);
@@ -208,6 +215,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
             break;
         }
 
+        context->memory->stats.memory.alloced = context->segments.hashtable.size;
         if ((result=shmopt_create_value_segment(context)) != 0) {
             break;
         }
@@ -270,6 +278,7 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
 #endif
 }
 
+#if 0
 static void print_value_allocator(struct shmcache_context *context,
         struct shmcache_object_pool_context *op)
 {
@@ -293,6 +302,7 @@ static void print_value_allocator(struct shmcache_context *context,
         allocator_offset = shm_object_pool_next(op);
     }
 }
+#endif
 
 int shmcache_init(struct shmcache_context *context,
 		struct shmcache_config *config,
@@ -675,3 +685,9 @@ int shmcache_remove_all(struct shmcache_context *context)
     return result;
 }
 
+void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *stats)
+{
+    stats->shm = context->memory->stats;
+    stats->hashtable.count = context->memory->hashtable.count;
+    stats->hashtable.segment_size = context->segments.hashtable.size;
+}

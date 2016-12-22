@@ -35,6 +35,7 @@ static int shm_value_allocator_do_alloc(struct shmcache_context *context,
         allocator = (struct shm_striping_allocator *)(context->segments.
                 hashtable.base + allocator_offset);
         if (shm_value_striping_alloc(allocator, size, value) == 0) {
+            context->memory->stats.memory.used += size;
             return 0;
         }
 
@@ -82,7 +83,8 @@ static int shm_value_allocator_do_recycle(struct shmcache_context *context,
     return 0;
 }
 
-static int shm_value_allocator_recycle(struct shmcache_context *context)
+int shm_value_allocator_recycle(struct shmcache_context *context,
+        struct shm_recycle_counter *recycle_counter, const bool once)
 {
     int64_t entry_offset;
     struct shm_hash_entry *entry;
@@ -99,9 +101,6 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
     g_current_time = time(NULL);
     recycled = false;
     while ((entry_offset=shm_list_first(&context->list)) > 0) {
-        logDebug("file: "__FILE__", line: %d, "
-                "entry_offset: %"PRId64, __LINE__, entry_offset);
-
         entry = HT_ENTRY_PTR(context, entry_offset);
         index = entry->value.index.striping;
         key.data = entry->key;
@@ -122,6 +121,11 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
         if (valid) {
             valid_count++;
         }
+
+        if (once) {
+            result = 0;
+            break;
+        }
         if (recycled) {
             logInfo("file: "__FILE__", line: %d, "
                     "recycle #%d striping memory, "
@@ -133,13 +137,16 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
         }
     }
 
+    context->memory->stats.memory.clear_ht_entry.total += clear_count;
     if (valid_count > 0) {
-        context->memory->stats.memory.recycle_valid_entry_count += valid_count;
+        context->memory->stats.memory.clear_ht_entry.valid += valid_count;
     }
 
+    recycle_counter->total++;
     if (result == 0) {
+        recycle_counter->success++;
         if (valid_count > 0) {
-            context->memory->stats.memory.recycle.force++;
+            recycle_counter->force++;
             if (context->config.va_policy.
                     sleep_us_when_recycle_valid_entries > 0)
             {
@@ -150,8 +157,9 @@ static int shm_value_allocator_recycle(struct shmcache_context *context)
     } else {
         logError("file: "__FILE__", line: %d, "
                 "unable to recycle value memory, "
+                "clear total entries: %d, "
                 "cleared valid entries: %d",
-                __LINE__, valid_count);
+                __LINE__, clear_count, valid_count);
     }
     return result;
 }
@@ -185,11 +193,8 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
     }
 
     if (recycle ) {
-        context->memory->stats.memory.recycle.total++;
-        result = shm_value_allocator_recycle(context);
-        if (result == 0) {
-            context->memory->stats.memory.recycle.success++;
-        }
+        result = shm_value_allocator_recycle(context,
+                &context->memory->stats.memory.recycle.value, false);
     } else {
         result = shmopt_create_value_segment(context);
     }
@@ -211,6 +216,7 @@ int shm_value_allocator_free(struct shmcache_context *context,
 
     allocator = context->value_allocator.allocators + value->index.striping;
     used = shm_striping_allocator_free(allocator, value->size);
+    context->memory->stats.memory.used -= value->size;
     if (used <= 0) {
         if (used < 0) {
             logError("file: "__FILE__", line: %d, "
