@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 	g_log_context.log_level = LOG_DEBUG;
 
     if ((result=shmcache_init_from_file(&context,
-                    "../conf/libshmcache.conf")) != 0)
+                    "../../conf/libshmcache.conf")) != 0)
     {
         return result;
     }
