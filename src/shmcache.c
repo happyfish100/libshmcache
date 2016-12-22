@@ -389,6 +389,7 @@ int shmcache_init(struct shmcache_context *context,
                         (char *)current - context->segments.hashtable.base,
                         current->value.index.striping, current->value.offset,
                         current->value.length);
+                break;
             } else {
                 bytes += value.length;
             }

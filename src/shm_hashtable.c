@@ -118,8 +118,7 @@ int shm_ht_set(struct shmcache_context *context,
     entry->expires = HT_CALC_EXPIRES(ttl);
     if (found) {
         shm_value_allocator_free(context, &old_value, &recycled);
-        shm_list_delete(&context->list, entry_offset);
-        shm_list_add_tail(&context->list, entry_offset);
+        shm_list_move_tail(&context->list, entry_offset);
         return 0;
     }
 

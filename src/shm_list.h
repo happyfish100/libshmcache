@@ -51,6 +51,14 @@ static inline void shm_list_init(struct shmcache_list *list)
     list->head.ptr->prev = list->head.ptr->next = list->head.offset;
 }
 
+#define SHM_LIST_ADD_TO_TAIL(list, node, obj_offset) \
+    do { \
+        node->next = list->head.offset;    \
+        node->prev = list->head.ptr->prev; \
+        SHM_LIST_PTR(list, list->head.ptr->prev)->next = obj_offset; \
+        list->head.ptr->prev = obj_offset; \
+    } while (0)
+
 /**
 add an element to list tail
 parameters:
@@ -63,10 +71,7 @@ static inline void shm_list_add_tail(struct shmcache_list *list, int64_t obj_off
     struct shm_list *node;
 
     node = SHM_LIST_PTR(list, obj_offset);
-    node->next = list->head.offset;
-    node->prev = list->head.ptr->prev;
-    SHM_LIST_PTR(list, list->head.ptr->prev)->next = obj_offset;
-    list->head.ptr->prev = obj_offset;
+    SHM_LIST_ADD_TO_TAIL(list, node, obj_offset);
 }
 
 /**
@@ -91,6 +96,24 @@ static inline void shm_list_delete(struct shmcache_list *list, int64_t obj_offse
     SHM_LIST_PTR(list, node->prev)->next = node->next;
     SHM_LIST_PTR(list, node->next)->prev = node->prev;
     node->prev = node->next = obj_offset;
+}
+
+/**
+move an element to tail
+parameters:
+	list: the list
+    obj_offset: the object offset
+return none
+*/
+static inline void shm_list_move_tail(struct shmcache_list *list, int64_t obj_offset)
+{
+    struct shm_list *node;
+
+    node = SHM_LIST_PTR(list, obj_offset);
+    SHM_LIST_PTR(list, node->prev)->next = node->next;
+    SHM_LIST_PTR(list, node->next)->prev = node->prev;
+
+    SHM_LIST_ADD_TO_TAIL(list, node, obj_offset);
 }
 
 /**

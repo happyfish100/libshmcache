@@ -102,13 +102,13 @@ static int shm_detect_deadlock(struct shmcache_context *context,
     }
 
     if (last_pid == context->memory->lock.pid) {
+        context->memory->lock.pid = 0;
         if ((result=pthread_mutex_unlock(&context->memory->lock.mutex)) != 0) {
             logError("file: "__FILE__", line: %d, "
                     "call pthread_mutex_unlock fail, "
                     "errno: %d, error info: %s",
                     __LINE__, result, strerror(result));
         } else {
-            context->memory->lock.pid = 0;
             logInfo("file: "__FILE__", line: %d, "
                     "my pid: %d, unlock deadlock by process: %d",
                     __LINE__, context->pid, last_pid);
