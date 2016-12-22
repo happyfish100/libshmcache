@@ -144,8 +144,8 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
         if (allocator_offset > 0) {
             allocator = (struct shm_striping_allocator *)(context->segments.
                     hashtable.base + allocator_offset);
-            recycle = (context->config.va_policy.avg_key_ttl > 0 && get_current_time() -
-                    allocator->first_alloc_time >= context->config.va_policy.avg_key_ttl);
+            recycle = (context->config.va_policy.avg_key_ttl > 0 && g_current_time -
+                    allocator->last_alloc_time >= context->config.va_policy.avg_key_ttl);
         } else {
             recycle = false;
         }

@@ -37,8 +37,8 @@ void shm_ht_init(struct shmcache_context *context, const int capacity)
 #define HT_VALUE_EQUALS(hvalue, hv_len, pvalue) (hv_len == pvalue->length \
         && memcmp(hvalue, pvalue->data, pvalue->length) == 0)
 
-#define HT_CALC_EXPIRES(ttl) \
-    (ttl == SHMCACHE_NEVER_EXPIRED_TTL ? 0 : get_current_time() + ttl)
+#define HT_CALC_EXPIRES(current_time, ttl) \
+    (ttl == SHMCACHE_NEVER_EXPIRED_TTL ? 0 : current_time + ttl)
 
 static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
         const struct shm_value *value)
@@ -72,6 +72,10 @@ int shm_ht_set(struct shmcache_context *context,
                 "invalid key length: %d exceeds %d", __LINE__,
                 key->length, SHMCACHE_MAX_KEY_SIZE);
         return ENAMETOOLONG;
+    }
+
+    if (!g_schedule_flag) {
+        g_current_time = time(NULL);
     }
 
     if ((result=shm_value_allocator_alloc(context, value->length,
@@ -115,7 +119,7 @@ int shm_ht_set(struct shmcache_context *context,
     new_value.length = value->length;
 
     entry->value = new_value;
-    entry->expires = HT_CALC_EXPIRES(ttl);
+    entry->expires = HT_CALC_EXPIRES(g_current_time, ttl);
     if (found) {
         shm_value_allocator_free(context, &old_value, &recycled);
         shm_list_move_tail(&context->list, entry_offset);

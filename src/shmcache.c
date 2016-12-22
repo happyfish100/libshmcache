@@ -279,10 +279,10 @@ static void print_value_allocator(struct shmcache_context *context,
         allocator = (struct shm_striping_allocator *)(context->segments.
                 hashtable.base + allocator_offset);
 
-        logInfo("allocator %"PRId64" first_alloc_time: %d, fail_times: %d, in_which_pool: %d, "
+        logInfo("allocator %"PRId64" last_alloc_time: %d, fail_times: %d, in_which_pool: %d, "
                 "segment: %d, striping: %d, base: %"PRId64
                 ", total: %d, used: %d",
-                allocator_offset, allocator->first_alloc_time,
+                allocator_offset, allocator->last_alloc_time,
                 allocator->fail_times, allocator->in_which_pool,
                 allocator->index.segment, allocator->index.striping,
                 allocator->offset.base, allocator->size.total,
@@ -641,6 +641,19 @@ int shmcache_delete(struct shmcache_context *context,
         context->memory->stats.hashtable.del.success++;
     }
     shm_unlock(context);
+    return result;
+}
+
+int shmcache_remove_all(struct shmcache_context *context)
+{
+    int result;
+
+    if ((result=shm_lock_file(context)) != 0) {
+        return result;
+    }
+
+    result = shmopt_remove_all(context);
+    shm_unlock_file(context);
     return result;
 }
 

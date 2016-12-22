@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[])
 {
-#define MAX_VALUE_SIZE  (1 * 1024)
+#define MAX_VALUE_SIZE  (2 * 1024)
 
 	int result;
     struct shmcache_context context;

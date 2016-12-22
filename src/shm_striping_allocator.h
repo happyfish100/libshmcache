@@ -42,7 +42,7 @@ parameters:
 */
 static inline void shm_striping_allocator_reset(struct shm_striping_allocator *allocator)
 {
-    allocator->first_alloc_time = 0;
+    allocator->last_alloc_time = 0;
     allocator->fail_times = 0;
     allocator->size.used = 0;
     allocator->offset.free = allocator->offset.base;

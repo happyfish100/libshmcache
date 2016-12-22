@@ -8,7 +8,16 @@
 int main(int argc, char *argv[])
 {
 	int result;
+    char confirm;
     struct shmcache_context context;
+
+    if (!(argc >= 2 && strcmp(argv[1], "--force") == 0)) {
+        printf("clear all share memory? <y|n>:");
+        if (!(scanf("%c", &confirm) == 1 && confirm == 'y')) {
+            printf("share memory NOT removed.\n");
+            return ECANCELED;
+        }
+    }
 	
 	log_init();
 	g_log_context.log_level = LOG_DEBUG;
@@ -19,6 +28,9 @@ int main(int argc, char *argv[])
         return result;
     }
 
-    return shmopt_remove_all(&context);
+    if ((result=shmcache_remove_all(&context)) == 0) {
+        printf("ALL share memory segments are removed!\n");
+    }
+    return  result;
 }
 

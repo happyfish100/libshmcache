@@ -86,6 +86,15 @@ return error no, 0 for success, != 0 for fail
 int shmcache_delete(struct shmcache_context *context,
         const struct shmcache_buffer *key);
 
+
+/**
+remove all share memory
+parameters:
+	context: the context pointer
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_remove_all(struct shmcache_context *context);
+
 /**
 get stats
 parameters:
