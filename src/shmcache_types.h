@@ -57,6 +57,12 @@ struct shmcache_config {
          * means it is almost full, put it to the done queue
          */
         int max_fail_times;
+
+        /* sleep time to avoid other processes read dirty data when recycle
+         * more than one valid (in TTL / not expired) KV entries.
+         * 0 for never sleep
+         */
+        int sleep_us_when_recycle_valid_entries;
     } va_policy;   //value allocator policy
 
     struct {
@@ -168,7 +174,12 @@ struct shm_stats {
     } hashtable;
 
     struct {
-        struct shm_counter recycle;
+        int64_t recycle_valid_entry_count;
+        struct {
+            int64_t total;
+            int64_t success;
+            int64_t force;  //force recycle (clear valid entries)
+        } recycle;
     } memory;
 };
 
@@ -231,6 +242,7 @@ struct shmcache_context {
     struct shmcache_object_pool_context hentry_allocator;
     struct shmcache_value_allocator_context value_allocator;
     struct shmcache_list list;   //for value recycle
+    bool check_segment_size;  //if check segment size
 };
 
 struct shmcache_stats {

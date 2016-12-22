@@ -247,6 +247,7 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
         (context->segments.hashtable.base +
         ht_offsets[OFFSETS_INDEX_VA_POOL_OBJECT]);
 
+#if 0
     {
         struct shm_striping_allocator *allocator;
         struct shm_striping_allocator *end;
@@ -266,6 +267,7 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
         }
         logInfo("striping used bytes: %"PRId64, bytes);
     }
+#endif
 }
 
 static void print_value_allocator(struct shmcache_context *context,
@@ -293,7 +295,8 @@ static void print_value_allocator(struct shmcache_context *context,
 }
 
 int shmcache_init(struct shmcache_context *context,
-		struct shmcache_config *config)
+		struct shmcache_config *config,
+        const bool check_segment_size)
 {
 	int result;
     int ht_capacity;
@@ -307,6 +310,7 @@ int shmcache_init(struct shmcache_context *context,
     context->config = *config;
     context->pid = getpid();
     context->lock_fd = -1;
+    context->check_segment_size = check_segment_size;
 
     ht_segment_size = shmcache_get_ht_segment_size(context,
             &segment, &striping, &ht_capacity, ht_offsets);
@@ -354,7 +358,9 @@ int shmcache_init(struct shmcache_context *context,
             lock_policy.detect_deadlock_interval_ms / context->config.
             lock_policy.trylock_interval_us;
     }
-    result = shmopt_open_value_segments(context);
+    if (check_segment_size) {
+        result = shmopt_open_value_segments(context);
+    }
 
     logInfo("file: "__FILE__", line: %d, "
             "doing count: %d, done count: %d, hentry free count: %d, "
@@ -364,6 +370,7 @@ int shmcache_init(struct shmcache_context *context,
             shm_object_pool_get_count(&context->hentry_allocator),
             shm_object_pool_get_count(&context->hentry_allocator) + context->memory->hashtable.count);
 
+#if 0
     print_value_allocator(context, &context->value_allocator.doing);
     print_value_allocator(context, &context->value_allocator.done);
 
@@ -409,7 +416,6 @@ int shmcache_init(struct shmcache_context *context,
         logInfo("hash table used bytes: %"PRId64, bytes);
     }
 
-#if 0
     /*
     {
         unsigned int index;
@@ -461,11 +467,11 @@ int64_t shmcache_parse_bytes(IniContext *iniContext,
     return size;
 }
 
-int shmcache_init_from_file(struct shmcache_context *context,
+
+int shmcache_load_config(struct shmcache_config *config,
 		const char *config_filename)
 {
     int result;
-    struct shmcache_config config;
     IniContext iniContext;
     char *type;
     char *filename;
@@ -478,9 +484,9 @@ int shmcache_init_from_file(struct shmcache_context *context,
     do {
         type = iniGetStrValue(NULL, "type", &iniContext);
         if (type == NULL || strcasecmp(type, "shm") == 0) {
-            config.type = SHMCACHE_TYPE_SHM;
+            config->type = SHMCACHE_TYPE_SHM;
         } else {
-            config.type = SHMCACHE_TYPE_MMAP;
+            config->type = SHMCACHE_TYPE_MMAP;
         }
 
         filename = iniGetStrValue(NULL, "filename", &iniContext);
@@ -491,24 +497,24 @@ int shmcache_init_from_file(struct shmcache_context *context,
             result = ENOENT;
             break;
         }
-        snprintf(config.filename, sizeof(config.filename),
+        snprintf(config->filename, sizeof(config->filename),
                 "%s", filename);
 
-        config.max_memory = shmcache_parse_bytes(&iniContext,
+        config->max_memory = shmcache_parse_bytes(&iniContext,
                 config_filename, "max_memory", &result);
         if (result != 0) {
             break;
         }
 
-        config.segment_size = shmcache_parse_bytes(&iniContext,
+        config->segment_size = shmcache_parse_bytes(&iniContext,
                 config_filename, "segment_size", &result);
         if (result != 0) {
             break;
         }
 
-        config.max_key_count = iniGetIntValue(NULL, "max_key_count",
+        config->max_key_count = iniGetIntValue(NULL, "max_key_count",
                 &iniContext, 0);
-        if (config.max_key_count <= 0) {
+        if (config->max_key_count <= 0) {
             logError("file: "__FILE__", line: %d, "
                     "config file: %s, item \"max_key_count\" "
                     "is not exists or invalid",
@@ -517,7 +523,7 @@ int shmcache_init_from_file(struct shmcache_context *context,
             break;
         }
 
-        config.max_value_size = shmcache_parse_bytes(&iniContext,
+        config->max_value_size = shmcache_parse_bytes(&iniContext,
                 config_filename, "max_value_size", &result);
         if (result != 0) {
             break;
@@ -525,7 +531,7 @@ int shmcache_init_from_file(struct shmcache_context *context,
 
         hash_function = iniGetStrValue(NULL, "hash_function", &iniContext);
         if (hash_function == NULL || *hash_function  == '\0') {
-            config.hash_func = simple_hash;
+            config->hash_func = simple_hash;
         } else {
             void *handle;
             handle = dlopen(NULL, RTLD_LAZY);
@@ -536,8 +542,8 @@ int shmcache_init_from_file(struct shmcache_context *context,
                 result = EBUSY;
                 break;
             }
-            config.hash_func = (HashFunc)dlsym(handle, hash_function);
-            if (config.hash_func == NULL) {
+            config->hash_func = (HashFunc)dlsym(handle, hash_function);
+            if (config->hash_func == NULL) {
                 logError("file: "__FILE__", line: %d, "
                         "call dlsym %s fail, error: %s",
                         __LINE__, hash_function, dlerror());
@@ -547,21 +553,21 @@ int shmcache_init_from_file(struct shmcache_context *context,
             dlclose(handle);
         }
 
-        config.va_policy.avg_key_ttl = iniGetIntValue(NULL,
+        config->va_policy.avg_key_ttl = iniGetIntValue(NULL,
                 "value_policy.avg_key_ttl", &iniContext, 0);
 
-        config.va_policy.discard_memory_size = shmcache_parse_bytes(
+        config->va_policy.discard_memory_size = shmcache_parse_bytes(
                 &iniContext, config_filename,
                 "value_policy.discard_memory_size", &result);
         if (result != 0) {
             break;
         }
 
-        config.va_policy.max_fail_times = iniGetIntValue(NULL,
-                "value_policy.max_fail_times", &iniContext, 10);
-        config.lock_policy.trylock_interval_us = iniGetIntValue(NULL,
+        config->va_policy.max_fail_times = iniGetIntValue(NULL,
+                "value_policy.max_fail_times", &iniContext, 5);
+        config->lock_policy.trylock_interval_us = iniGetIntValue(NULL,
                 "lock_policy.trylock_interval_us", &iniContext, 200);
-        if (config.lock_policy.trylock_interval_us <= 0) {
+        if (config->lock_policy.trylock_interval_us <= 0) {
             logError("file: "__FILE__", line: %d, "
                     "config file: %s, item "
                     "\"lock_policy.trylock_interval_us\" "
@@ -571,10 +577,13 @@ int shmcache_init_from_file(struct shmcache_context *context,
             break;
         }
 
-        config.lock_policy.detect_deadlock_interval_ms = iniGetIntValue(
+        config->va_policy.sleep_us_when_recycle_valid_entries = iniGetIntValue(NULL,
+                "value_policy.sleep_us_when_recycle_valid_entries", &iniContext, 0);
+
+        config->lock_policy.detect_deadlock_interval_ms = iniGetIntValue(
                 NULL, "lock_policy.detect_deadlock_interval_ms",
                 &iniContext, 1000);
-        if (config.lock_policy.detect_deadlock_interval_ms <= 0) {
+        if (config->lock_policy.detect_deadlock_interval_ms <= 0) {
             logError("file: "__FILE__", line: %d, "
                     "config file: %s, item "
                     "\"lock_policy.detect_deadlock_interval_ms\" "
@@ -586,10 +595,19 @@ int shmcache_init_from_file(struct shmcache_context *context,
     } while (0);
 
     iniFreeContext(&iniContext);
-    if (result != 0) {
+    return result;
+}
+
+int shmcache_init_from_file(struct shmcache_context *context,
+		const char *config_filename)
+{
+    int result;
+    struct shmcache_config config;
+
+    if ((result=shmcache_load_config(&config, config_filename)) != 0) {
         return result;
     }
-    return shmcache_init(context, &config);
+    return shmcache_init(context, &config, true);
 }
 
 void shmcache_destroy(struct shmcache_context *context)

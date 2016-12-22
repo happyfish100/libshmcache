@@ -14,7 +14,8 @@ int shmopt_init_segment(struct shmcache_context *context,
 {
     segment->proj_id = proj_id;
     segment->base = shm_mmap(context->config.type,
-            context->config.filename, proj_id, size, &segment->key);
+            context->config.filename, proj_id, size, &segment->key,
+            context->check_segment_size);
     if (segment->base == NULL) {
         return ENOMEM;
     }
@@ -138,6 +139,7 @@ int shmopt_remove_all(struct shmcache_context *context)
             context->segments.hashtable.proj_id,
             context->segments.hashtable.size,
             context->segments.hashtable.key);
+
     for (segment_index=0; segment_index<context->memory->vm_info.segment.
             count.current; segment_index++)
     {

@@ -30,10 +30,12 @@ parameters:
 	proj_id: the project id to generate key
     size: the share memory size
     key: return the key
+    check_size: if check size
 return share memory pointer, NULL for fail
 */
 void *shm_mmap(const int type, const char *filename,
-        const int proj_id, const int64_t size, key_t *key);
+        const int proj_id, const int64_t size, key_t *key,
+        const bool check_size);
 
 /**
 munmap or shmdt

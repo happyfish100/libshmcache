@@ -12,7 +12,7 @@
 #include "shm_op_wrapper.h"
 
 static void *shm_do_mmap(const char *filename, int proj_id,
-        const int64_t size)
+        const int64_t size, const bool check_size)
 {
     char true_filename[MAX_PATH_SIZE];
     void *addr;
@@ -90,12 +90,17 @@ static void *shm_do_mmap(const char *filename, int proj_id,
     return addr;
 }
 
-void *shm_do_shmmap(const key_t key, const int64_t size)
+void *shm_do_shmmap(const key_t key, const int64_t size,
+        const bool check_size)
 {
     int shmid;
     void *addr;
 
-    shmid = shmget(key, size, IPC_CREAT | 0666);
+    if (check_size) {
+        shmid = shmget(key, size, IPC_CREAT | 0666);
+    } else {
+        shmid = shmget(key, 0, 0666);
+    }
     if (shmid < 0) {
         logError("file: "__FILE__", line: %d, "
                 "shmget with key %08x fail, "
@@ -116,7 +121,8 @@ void *shm_do_shmmap(const key_t key, const int64_t size)
 }
 
 void *shm_mmap(const int type, const char *filename,
-        const int proj_id, const int64_t size, key_t *key)
+        const int proj_id, const int64_t size, key_t *key,
+        const bool check_size)
 {
     int result;
 
@@ -152,9 +158,9 @@ void *shm_mmap(const int type, const char *filename,
     }
 
     if (type == SHMCACHE_TYPE_MMAP) {
-        return shm_do_mmap(filename, proj_id, size);
+        return shm_do_mmap(filename, proj_id, size, check_size);
     } else {
-        return shm_do_shmmap(*key, size);
+        return shm_do_shmmap(*key, size, check_size);
     }
 }
 
@@ -205,7 +211,7 @@ int shm_remove(const int type, const char *filename,
     } else {
         int shmid;
 
-        shmid = shmget(key, size, 0666);
+        shmid = shmget(key, 0, 0666);
         if (shmid < 0) {
             result = errno != 0 ? errno : EACCES;
             logError("file: "__FILE__", line: %d, "

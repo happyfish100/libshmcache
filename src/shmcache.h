@@ -32,7 +32,8 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_init(struct shmcache_context *context,
-		struct shmcache_config *config);
+		struct shmcache_config *config,
+        const bool check_segment_size);
 
 /**
 context init from config file
@@ -42,6 +43,16 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_init_from_file(struct shmcache_context *context,
+		const char *config_filename);
+
+/**
+load config from file
+parameters:
+    config: the config pointer
+    config_filename: the config filename
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_load_config(struct shmcache_config *config,
 		const char *config_filename);
 
 /**

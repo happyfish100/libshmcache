@@ -13,8 +13,7 @@
 int shm_ht_get_capacity(const int max_count)
 {
     unsigned int *capacity;
-    //capacity = hash_get_prime_capacity(max_count);
-    capacity = NULL;  //TODO: fix me
+    capacity = hash_get_prime_capacity(max_count);
     if (capacity == NULL) {
         return max_count;
     }
@@ -65,13 +64,20 @@ int shm_ht_set(struct shmcache_context *context,
     struct shm_value old_value;
     struct shm_value new_value;
     bool found;
-    bool recycled;
+    bool recycled = false;
 
     if (key->length > SHMCACHE_MAX_KEY_SIZE) {
 		logError("file: "__FILE__", line: %d, "
                 "invalid key length: %d exceeds %d", __LINE__,
                 key->length, SHMCACHE_MAX_KEY_SIZE);
         return ENAMETOOLONG;
+    }
+
+    if (value->length > context->config.max_value_size) {
+		logError("file: "__FILE__", line: %d, "
+                "invalid value length: %d exceeds %d", __LINE__,
+                value->length, context->config.max_value_size);
+        return EINVAL;
     }
 
     if (!g_schedule_flag) {
@@ -154,7 +160,7 @@ int shm_ht_get(struct shmcache_context *context,
     while (entry_offset > 0) {
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
-            if (entry->expires == 0 || entry->expires >= get_current_time()) {
+            if (HT_ENTRY_IS_VALID(entry, get_current_time())) {
                 value->data = shm_ht_get_value_ptr(context, &entry->value);
                 value->length = entry->value.length;
                 return 0;

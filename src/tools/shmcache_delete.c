@@ -8,8 +8,8 @@
 
 static void usage(const char *prog)
 {
-    fprintf(stderr, "shmcache set key value.\n"
-         "Usage: %s [config_filename] <key> <value> <ttl>\n", prog);
+    fprintf(stderr, "shmcache delete key.\n"
+         "Usage: %s [config_filename] <key>\n", prog);
 }
 
 int main(int argc, char *argv[])
@@ -19,8 +19,6 @@ int main(int argc, char *argv[])
     char *config_filename;
     struct shmcache_context context;
     struct shmcache_buffer key;
-    struct shmcache_buffer value;
-    int ttl;
 
     if (argc >= 2 && (strcmp(argv[1], "-h") == 0 ||
                 strcmp(argv[1], "help") == 0 ||
@@ -29,14 +27,14 @@ int main(int argc, char *argv[])
         usage(argv[0]);
         return 0;
     }
-    if (argc < 4) {
+    if (argc < 2) {
         usage(argv[0]);
         return EINVAL;
     }
 
     config_filename = "/etc/libshmcache.conf";
     if (isFile(argv[1])) {
-        if (argc < 5) {
+        if (argc < 3) {
             usage(argv[0]);
             return EINVAL;
         }
@@ -53,14 +51,11 @@ int main(int argc, char *argv[])
 
     key.data = argv[index++];
     key.length = strlen(key.data);
-    value.data = argv[index++];
-    value.length = strlen(value.data);
-    ttl = atoi(argv[index++]);
-    result = shmcache_set(&context, &key, &value, ttl);
+    result = shmcache_delete(&context, &key);
     if (result == 0) {
-        printf("set key: %s success.\n", key.data);
+        printf("delete key: %s successfully.\n", key.data);
     } else {
-        fprintf(stderr, "set key: %s fail, errno: %d\n", key.data, result);
+        fprintf(stderr, "delete key: %s fail, errno: %d\n", key.data, result);
     }
 
 	return result;

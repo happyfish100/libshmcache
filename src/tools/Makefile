@@ -5,7 +5,7 @@ INC_PATH = -I/usr/include/fastcommon -I/usr/include/shmcache
 LIB_PATH = -lfastcommon -lshmcache -lpthread -ldl
 TARGET_PATH = /usr/bin
 
-TARGET_PRGS = shmcache_remove shmcache_set shmcache_get
+TARGET_PRGS = shmcache_set shmcache_get shmcache_delete shmcache_remove_all
 ALL_PRGS = $(TARGET_PRGS)
 
 all: $(ALL_PRGS)

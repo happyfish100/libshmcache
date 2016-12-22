@@ -3,38 +3,62 @@
 #include <string.h>
 #include <time.h>
 #include "logger.h"
+#include "shared_func.h"
 #include "shmcache.h"
+
+static void usage(const char *prog)
+{
+    fprintf(stderr, "shmcache get key value.\n"
+         "Usage: %s [config_filename] <key>\n", prog);
+}
 
 int main(int argc, char *argv[])
 {
 	int result;
+    int index;
+    char *config_filename;
     struct shmcache_context context;
     struct shmcache_buffer key;
     struct shmcache_buffer value;
 
+    if (argc >= 2 && (strcmp(argv[1], "-h") == 0 ||
+                strcmp(argv[1], "help") == 0 ||
+                strcmp(argv[1], "--help") == 0))
+    {
+        usage(argv[0]);
+        return 0;
+    }
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <key>\n", argv[0]);
+        usage(argv[0]);
         return EINVAL;
     }
 
-	log_init();
-	g_log_context.log_level = LOG_DEBUG;
+    config_filename = "/etc/libshmcache.conf";
+    if (isFile(argv[1])) {
+        if (argc < 3) {
+            usage(argv[0]);
+            return EINVAL;
+        }
+        config_filename = argv[1];
+        index = 2;
+    } else {
+        index = 1;
+    }
 
-    if ((result=shmcache_init_from_file(&context,
-                    "../../conf/libshmcache.conf")) != 0)
-    {
+	log_init();
+    if ((result=shmcache_init_from_file(&context, config_filename)) != 0) {
         return result;
     }
 
-    key.data = argv[1];
+    key.data = argv[index++];
     key.length = strlen(key.data);
     result = shmcache_get(&context, &key, &value);
     if (result == 0) {
-        printf("value length: %d, value:\n%.*s\n", value.length, value.length, value.data);
+        printf("value length: %d, value:\n%.*s\n", value.length,
+                value.length, value.data);
     } else {
-        fprintf(stderr, "get fail, errno: %d\n", result);
+        fprintf(stderr, "get key: %s fail, errno: %d\n",  key.data, result);
     }
 
 	return result;
 }
-

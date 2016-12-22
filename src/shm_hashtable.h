@@ -25,6 +25,9 @@
 #define HT_ENTRY_PTR(context, entry_offset) ((struct shm_hash_entry *) \
     (context->segments.hashtable.base + entry_offset))
 
+#define HT_ENTRY_IS_VALID(entry, current_time) \
+    (entry->expires == 0 || entry->expires >= current_time)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
