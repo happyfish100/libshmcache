@@ -206,6 +206,7 @@ struct shm_stats {
 
 struct shm_memory_info {
     int status;
+    int max_key_count;
     struct shm_lock lock;
     struct shm_value_memory_info vm_info;  //value memory info
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool

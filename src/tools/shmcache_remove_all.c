@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	
 	log_init();
     if ((result=shmcache_init_from_file_ex(&context,
-                    config_filename, false)) != 0)
+                    config_filename, false, false)) != 0)
     {
         return result;
     }

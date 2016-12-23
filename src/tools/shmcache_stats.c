@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 	log_init();
     if ((result=shmcache_init_from_file_ex(&context,
-                    config_filename, false)) != 0)
+                    config_filename, false, true)) != 0)
     {
         return result;
     }
@@ -68,7 +68,8 @@ static void stats_output(struct shmcache_context *context)
     shmcache_stats(context, &stats);
 
     printf("\nhash table stats:\n");
-    printf("key_count: %d\n"
+    printf("max_key_count: %d\n"
+            "current_key_count: %d\n"
             "segment_size: %.03f MB\n\n"
             "set_total_count: %"PRId64"\n"
             "set_success_count: %"PRId64"\n"
@@ -76,6 +77,7 @@ static void stats_output(struct shmcache_context *context)
             "get_success_count: %"PRId64"\n"
             "del_total_count: %"PRId64"\n"
             "del_success_count: %"PRId64"\n\n",
+            stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
             stats.shm.hashtable.set.total,
