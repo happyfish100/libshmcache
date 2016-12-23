@@ -20,6 +20,8 @@ the high performance features are:
 
 the stable features are:
   * deadlock detect and auto unlock which caused by other crushed process
+  * check some key fields for consistency when init, the old share memories
+    should be cleaned and reinit when the memory related parameters changed
   * sleep some time to avoid other processes read dirty data when
     recycle more than one valid (not expired) hash/KV entries
 
@@ -28,4 +30,3 @@ other features are:
     this config parameter: segment_size
   * supply perfect stats info: counters for set, get and delete,
     memory recycle stats, lock stats etc.
-
