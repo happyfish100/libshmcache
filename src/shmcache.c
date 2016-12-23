@@ -695,4 +695,8 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
     stats->shm = context->memory->stats;
     stats->hashtable.count = context->memory->hashtable.count;
     stats->hashtable.segment_size = context->segments.hashtable.size;
+    stats->max_memory = context->segments.hashtable.size +
+        context->memory->vm_info.segment.size *
+        context->memory->vm_info.segment.count.max;
+
 }
