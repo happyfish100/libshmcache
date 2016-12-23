@@ -306,7 +306,7 @@ static void print_value_allocator(struct shmcache_context *context,
 
 int shmcache_init(struct shmcache_context *context,
 		struct shmcache_config *config,
-        const bool check_segment_size)
+        const bool create_segment)
 {
 	int result;
     int ht_capacity;
@@ -320,7 +320,7 @@ int shmcache_init(struct shmcache_context *context,
     context->config = *config;
     context->pid = getpid();
     context->lock_fd = -1;
-    context->check_segment_size = check_segment_size;
+    context->create_segment = create_segment;
 
     ht_segment_size = shmcache_get_ht_segment_size(context,
             &segment, &striping, &ht_capacity, ht_offsets);
@@ -368,7 +368,7 @@ int shmcache_init(struct shmcache_context *context,
             lock_policy.detect_deadlock_interval_ms / context->config.
             lock_policy.trylock_interval_us;
     }
-    if (check_segment_size) {
+    if (create_segment) {
         result = shmopt_open_value_segments(context);
     }
 
@@ -602,14 +602,19 @@ int shmcache_load_config(struct shmcache_config *config,
             result = EINVAL;
             break;
         }
+        config->recycle_key_once = iniGetIntValue(NULL,
+                "recycle_key_once", &iniContext, 1);
+        if (config->recycle_key_once <= 0) {
+            config->recycle_key_once = 1;
+        }
     } while (0);
 
     iniFreeContext(&iniContext);
     return result;
 }
 
-int shmcache_init_from_file(struct shmcache_context *context,
-		const char *config_filename)
+int shmcache_init_from_file_ex(struct shmcache_context *context,
+		const char *config_filename, const bool create_segment)
 {
     int result;
     struct shmcache_config config;
@@ -617,7 +622,7 @@ int shmcache_init_from_file(struct shmcache_context *context,
     if ((result=shmcache_load_config(&config, config_filename)) != 0) {
         return result;
     }
-    return shmcache_init(context, &config, true);
+    return shmcache_init(context, &config, create_segment);
 }
 
 void shmcache_destroy(struct shmcache_context *context)

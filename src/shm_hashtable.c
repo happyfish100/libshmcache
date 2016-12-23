@@ -82,7 +82,8 @@ int shm_ht_set(struct shmcache_context *context,
 
     if (context->memory->hashtable.count >= context->config.max_key_count) {
         if ((result=shm_value_allocator_recycle(context, &context->memory->
-                        stats.memory.recycle.key, true)) != 0)
+                        stats.memory.recycle.key, context->
+                        config.recycle_key_once)) != 0)
         {
             return result;
         }

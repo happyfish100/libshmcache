@@ -30,12 +30,12 @@ parameters:
 	proj_id: the project id to generate key
     size: the share memory size
     key: return the key
-    check_size: if check size
+    create_segment: if create segment when segment not exist
 return share memory pointer, NULL for fail
 */
 void *shm_mmap(const int type, const char *filename,
         const int proj_id, const int64_t size, key_t *key,
-        const bool check_size);
+        const bool create_segment);
 
 /**
 munmap or shmdt

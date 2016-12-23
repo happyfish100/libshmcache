@@ -109,6 +109,8 @@ static int shm_detect_deadlock(struct shmcache_context *context,
                     "errno: %d, error info: %s",
                     __LINE__, result, strerror(result));
         } else {
+            __sync_add_and_fetch(&context->memory->stats.
+                            lock.unlock_deadlock, 1);
             logInfo("file: "__FILE__", line: %d, "
                     "my pid: %d, unlock deadlock by process: %d",
                     __LINE__, context->pid, last_pid);
@@ -125,8 +127,10 @@ int shm_lock(struct shmcache_context *context)
     pid_t pid;
     int clocks;
 
+    __sync_add_and_fetch(&context->memory->stats.lock.total, 1);
     clocks = 0;
     while ((result=pthread_mutex_trylock(&context->memory->lock.mutex)) == EBUSY) {
+        __sync_add_and_fetch(&context->memory->stats.lock.retry, 1);
         usleep(context->config.lock_policy.trylock_interval_us);
         ++clocks;
         if (clocks > context->detect_deadlock_clocks &&
@@ -135,6 +139,8 @@ int shm_lock(struct shmcache_context *context)
             clocks =  0;
             if (kill(pid, 0) != 0) {
                 if (errno == ESRCH || errno == ENOENT) {
+                    __sync_add_and_fetch(&context->memory->stats.
+                            lock.detect_deadlock, 1);
                     shm_detect_deadlock(context, pid);
                 }
             }

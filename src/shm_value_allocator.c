@@ -84,7 +84,7 @@ static int shm_value_allocator_do_recycle(struct shmcache_context *context,
 }
 
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_counter *recycle_counter, const bool once)
+        struct shm_recycle_counter *recycle_counter, const int recycle_key_once)
 {
     int64_t entry_offset;
     struct shm_hash_entry *entry;
@@ -122,11 +122,12 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
             valid_count++;
         }
 
-        if (once) {
-            result = 0;
-            break;
-        }
-        if (recycled) {
+        if (recycle_key_once > 0) {
+            if (clear_count >= recycle_key_once) {
+                result = 0;
+                break;
+            }
+        } else if (recycled) {
             logInfo("file: "__FILE__", line: %d, "
                     "recycle #%d striping memory, "
                     "clear total entries: %d, "
@@ -156,7 +157,7 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
         }
     } else {
         logError("file: "__FILE__", line: %d, "
-                "unable to recycle value memory, "
+                "unable to recycle memory, "
                 "clear total entries: %d, "
                 "cleared valid entries: %d",
                 __LINE__, clear_count, valid_count);
@@ -194,7 +195,7 @@ int shm_value_allocator_alloc(struct shmcache_context *context,
 
     if (recycle ) {
         result = shm_value_allocator_recycle(context,
-                &context->memory->stats.memory.recycle.value, false);
+                &context->memory->stats.memory.recycle.value_striping, -1);
     } else {
         result = shmopt_create_value_segment(context);
     }

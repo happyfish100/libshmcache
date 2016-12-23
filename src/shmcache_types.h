@@ -41,6 +41,8 @@ struct shmcache_config {
     int max_value_size;
     int type;  //shm or mmap
 
+    int recycle_key_once;  //recycle key number once when reach max keys
+
     struct {
         /* avg. key TTL threshold for recycling memory
          * unit: second
@@ -190,9 +192,18 @@ struct shm_stats {
 
         struct {
             struct shm_recycle_counter key;
-            struct shm_recycle_counter value;
+            struct shm_recycle_counter value_striping;
         } recycle;
     } memory;
+
+    struct {
+        volatile int64_t total;
+        volatile int64_t retry;
+        volatile int64_t detect_deadlock;
+        volatile int64_t unlock_deadlock;
+    } lock;
+
+    char reserved[64];
 };
 
 struct shm_memory_info {
@@ -254,7 +265,7 @@ struct shmcache_context {
     struct shmcache_object_pool_context hentry_allocator;
     struct shmcache_value_allocator_context value_allocator;
     struct shmcache_list list;   //for value recycle
-    bool check_segment_size;  //if check segment size
+    bool create_segment;  //if check segment size
 };
 
 struct shmcache_stats {
@@ -263,6 +274,7 @@ struct shmcache_stats {
         int64_t segment_size;  //segment memory size
         int count;  //key count
     } hashtable;
+    int64_t max_memory;
 };
 
 #ifdef __cplusplus

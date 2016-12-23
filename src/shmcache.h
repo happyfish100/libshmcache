@@ -29,11 +29,23 @@ context init
 parameters:
 	context: the context pointer
     config: the config parameters
+    create_segment: if create segment when segment not exist
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_init(struct shmcache_context *context,
 		struct shmcache_config *config,
-        const bool check_segment_size);
+        const bool create_segment);
+
+/**
+context init from config file
+parameters:
+	context: the context pointer
+    config_filename: the config filename
+    create_segment: if create segment when segment not exist
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_init_from_file_ex(struct shmcache_context *context,
+		const char *config_filename, const bool create_segment);
 
 /**
 context init from config file
@@ -42,8 +54,11 @@ parameters:
     config_filename: the config filename
 return error no, 0 for success, != 0 for fail
 */
-int shmcache_init_from_file(struct shmcache_context *context,
-		const char *config_filename);
+static inline int shmcache_init_from_file(struct shmcache_context *context,
+		const char *config_filename)
+{
+    return shmcache_init_from_file_ex(context, config_filename, true);
+}
 
 /**
 load config from file

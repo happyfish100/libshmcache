@@ -21,7 +21,6 @@ int main(int argc, char *argv[])
     char confirm;
     char *config_filename;
     struct shmcache_context context;
-    struct shmcache_config config;
 
     if (argc >= 2 && (strcmp(argv[1], "-h") == 0 ||
                 strcmp(argv[1], "help") == 0 ||
@@ -66,10 +65,9 @@ int main(int argc, char *argv[])
     }
 	
 	log_init();
-    if ((result=shmcache_load_config(&config, config_filename)) != 0) {
-        return result;
-    }
-    if ((result=shmcache_init(&context,&config, false)) != 0) {
+    if ((result=shmcache_init_from_file_ex(&context,
+                    config_filename, false)) != 0)
+    {
         return result;
     }
 
@@ -78,4 +76,3 @@ int main(int argc, char *argv[])
     }
     return  result;
 }
-

@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[])
 {
-#define MAX_VALUE_SIZE  (4 * 1024)
+#define MAX_VALUE_SIZE  (8 * 1024)
 
 	int result;
     struct shmcache_context context;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     memset(szValue, 'A', sizeof(szValue));
     key.data = szKey;
     value.data = szValue;
-    for (i=0; i<100000; i++) {
+    for (i=0; i<1000000; i++) {
         key.length = sprintf(key.data, "key_%04d", i + 1);
         value.length = (MAX_VALUE_SIZE * (int64_t)rand()) / (int64_t)RAND_MAX;
         result = shmcache_set(&context, &key, &value, ttl);

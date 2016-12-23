@@ -49,11 +49,12 @@ recycle oldest hashtable entries
 parameters:
 	context: the shm context
     recycle_counter: the recycle counter
-    once: if recycle only one ht entry
+    recycle_key_once: recycle key number once,
+                       <= 0 for until recycle a value allocator
 return error no, 0 for success, != 0 fail
 */
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_counter *recycle_counter, const bool once);
+        struct shm_recycle_counter *recycle_counter, const int recycle_key_once);
 
 #ifdef __cplusplus
 }
