@@ -6,18 +6,22 @@
 #include "shared_func.h"
 #include "shmcache.h"
 
+static void stats_output(struct shmcache_context *context);
+
 static void usage(const char *prog)
 {
     fprintf(stderr, "show shmcache stats.\n"
-         "Usage: %s [config_filename]\n", prog);
+         "Usage: %s [config_filename] [clean|clear]\n"
+         "\tclean or clear to reset the shm stats\n\n", prog);
 }
 
 int main(int argc, char *argv[])
 {
 	int result;
+    int last_index;
+    bool clear_stats;
     char *config_filename;
     struct shmcache_context context;
-    struct shmcache_stats stats;
 
     if (argc >= 2 && (strcmp(argv[1], "-h") == 0 ||
                 strcmp(argv[1], "help") == 0 ||
@@ -28,8 +32,18 @@ int main(int argc, char *argv[])
     }
 
     config_filename = "/etc/libshmcache.conf";
-    if (isFile(argv[1])) {
+    if (argc >= 2 && isFile(argv[1])) {
        config_filename = argv[1];
+    }
+
+    clear_stats = false;
+    if (argc >= 2) {
+        last_index = argc - 1;
+        if (strcmp(argv[last_index], "clean") == 0 || 
+                strcmp(argv[last_index], "clear") == 0)
+        {
+            clear_stats = true;
+        }
     }
 
 	log_init();
@@ -39,8 +53,19 @@ int main(int argc, char *argv[])
         return result;
     }
 
-    shmcache_stats(&context, &stats);
+    if (clear_stats) {
+        shmcache_clear_stats(&context);
+        printf("shm stats cleared.\n\n");
+    } else {
+        stats_output(&context);
+    }
+	return 0;
+}
 
+static void stats_output(struct shmcache_context *context)
+{
+    struct shmcache_stats stats;
+    shmcache_stats(context, &stats);
 
     printf("\nhash table stats:\n");
     printf("key_count: %d\n"
@@ -65,10 +90,10 @@ int main(int argc, char *argv[])
             "alloced: %.03f MB\n"
             "used: %.03f MB\n"
             "free: %.03f MB\n\n",
-            (double)stats.max_memory / (1024 * 1024),
-            (double)stats.shm.memory.alloced / (1024 * 1024),
-            (double)stats.shm.memory.used / (1024 * 1024),
-            (double)(stats.max_memory - stats.shm.memory.used) /
+            (double)stats.memory.max / (1024 * 1024),
+            (double)stats.memory.alloced / (1024 * 1024),
+            (double)stats.memory.used / (1024 * 1024),
+            (double)(stats.memory.max - stats.memory.used) /
             (1024 * 1024));
 
     printf("\nmemory recycle stats:\n");
@@ -99,5 +124,4 @@ int main(int argc, char *argv[])
             stats.shm.lock.detect_deadlock,
             stats.shm.lock.unlock_deadlock);
 
-	return 0;
 }

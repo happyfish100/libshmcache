@@ -30,6 +30,11 @@
 #define OFFSETS_INDEX_VA_POOL_OBJECT        5
 #define OFFSETS_COUNT                       6
 
+#define SHM_HASH_TABLE_PROJ_ID      1
+
+#define MAX_KEYS_IN_SHM(context) (shm_object_pool_get_count( \
+        &context->hentry_allocator) + context->memory->hashtable.count)
+
 static void get_value_segment_count_size(struct shmcache_config *config,
         const int64_t value_max_memory, struct shm_value_size_info *segment)
 {
@@ -127,9 +132,6 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     get_value_striping_count_size(&context->config,
             context->config.max_memory - total_size,
             segment, striping);
-
-    logInfo("hentry queue base offset: %"PRId64", object base: %"PRId64,
-            ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE], ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT]);
     return total_size;
 }
 
@@ -215,7 +217,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
             break;
         }
 
-        context->memory->stats.memory.alloced = context->segments.hashtable.size;
+        context->memory->usage.alloced = context->segments.hashtable.size;
         if ((result=shmopt_create_value_segment(context)) != 0) {
             break;
         }
@@ -304,6 +306,64 @@ static void print_value_allocator(struct shmcache_context *context,
 }
 #endif
 
+
+static int shmcache_check_segement(struct shm_value_size_info *shm,
+        struct shm_value_size_info *cfg, const char *label)
+{
+    if (shm->size != cfg->size) {
+        logError("file: "__FILE__", line: %d, "
+                "shm %s size: %"PRId64" != calculated by "
+                "config: %"PRId64", maybe config max_memory "
+                "or segment_size changed", __LINE__, label,
+                shm->size, cfg->size);
+        return EINVAL;
+    }
+
+    if (shm->count.max != cfg->count.max) {
+        logError("file: "__FILE__", line: %d, "
+                "shm %s max count: %d !=  calculated by "
+                "config count: %d, maybe config max_memory "
+                "or segment_size changed", __LINE__, label,
+                shm->count.max, cfg->count.max);
+        return EINVAL;
+    }
+    return 0;
+}
+
+static int shmcache_check(struct shmcache_context *context,
+        struct shm_value_size_info *segment,
+        struct shm_value_size_info *striping)
+{
+    int result;
+    if (context->memory->status != SHMCACHE_STATUS_NORMAL) {
+        logError("file: "__FILE__", line: %d, "
+                "share memory is invalid because status: 0x%08x != 0x%08x",
+                __LINE__, context->memory->status, SHMCACHE_STATUS_NORMAL);
+        return EINVAL;
+    }
+
+    if (context->config.max_key_count != MAX_KEYS_IN_SHM(context)) {
+        logError("file: "__FILE__", line: %d, "
+                "shm prealloced entry count: %d != max_key_count: %d",
+                __LINE__, MAX_KEYS_IN_SHM(context),
+                context->config.max_key_count);
+        return EINVAL;
+    }
+
+    if ((result=shmcache_check_segement(&context->memory->vm_info.segment,
+                    segment, "segment")) != 0)
+    {
+        return result;
+    }
+
+    if ((result=shmcache_check_segement(&context->memory->vm_info.striping,
+                    striping, "striping")) != 0)
+    {
+        return result;
+    }
+    return 0;
+}
+
 int shmcache_init(struct shmcache_context *context,
 		struct shmcache_config *config,
         const bool create_segment)
@@ -311,6 +371,7 @@ int shmcache_init(struct shmcache_context *context,
 	int result;
     int ht_capacity;
     int bytes;
+    bool ht_segemnt_exists;
     int64_t ht_segment_size;
     struct shm_value_size_info segment;
     struct shm_value_size_info striping;
@@ -324,8 +385,11 @@ int shmcache_init(struct shmcache_context *context,
 
     ht_segment_size = shmcache_get_ht_segment_size(context,
             &segment, &striping, &ht_capacity, ht_offsets);
+
+    ht_segemnt_exists = shm_exists(context->config.type,
+            context->config.filename, SHM_HASH_TABLE_PROJ_ID);
     if ((result=shmopt_init_segment(context, &context->segments.hashtable,
-                    1, ht_segment_size)) != 0)
+                    SHM_HASH_TABLE_PROJ_ID, ht_segment_size)) != 0)
     {
         return result;
     }
@@ -340,15 +404,14 @@ int shmcache_init(struct shmcache_context *context,
     memset(context->segments.values.items, 0, bytes);
 
     context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
-
-    logInfo("context->memory->hashtable.count: %d", context->memory->hashtable.count);
     shm_list_set(&context->list, context->segments.hashtable.base,
             &context->memory->hashtable.head);
     shmcache_set_obj_allocators(context, ht_offsets);
-
-    logInfo("head offset: %ld, hash buckets: %ld",
-            (char *)&context->memory->hashtable.head - context->segments.hashtable.base,
-            (char *)context->memory->hashtable.buckets - context->segments.hashtable.base);
+    if (ht_segemnt_exists && (result=shmcache_check(context, &segment,
+                    &striping)) != 0)
+    {
+        return result;
+    }
 
     if (context->memory->status == SHMCACHE_STATUS_INIT) {
         result = shmcache_do_lock_init(context, ht_capacity, &segment,
@@ -356,13 +419,7 @@ int shmcache_init(struct shmcache_context *context,
         if (!(result == 0 || result == -EEXIST)) {
             return result;
         }
-    } else if (context->memory->status != SHMCACHE_STATUS_NORMAL) {
-        logError("file: "__FILE__", line: %d, "
-                "share memory is invalid because status: 0x%08x != 0x%08x",
-                __LINE__, context->memory->status, SHMCACHE_STATUS_NORMAL);
-        return EINVAL;
     }
-
     if (context->config.lock_policy.trylock_interval_us > 0) {
         context->detect_deadlock_clocks = 1000 * context->config.
             lock_policy.detect_deadlock_interval_ms / context->config.
@@ -378,7 +435,7 @@ int shmcache_init(struct shmcache_context *context,
             shm_object_pool_get_count(&context->value_allocator.doing),
             shm_object_pool_get_count(&context->value_allocator.done),
             shm_object_pool_get_count(&context->hentry_allocator),
-            shm_object_pool_get_count(&context->hentry_allocator) + context->memory->hashtable.count);
+            MAX_KEYS_IN_SHM(context));
 
 #if 0
     print_value_allocator(context, &context->value_allocator.doing);
@@ -622,7 +679,16 @@ int shmcache_init_from_file_ex(struct shmcache_context *context,
     if ((result=shmcache_load_config(&config, config_filename)) != 0) {
         return result;
     }
-    return shmcache_init(context, &config, create_segment);
+
+    if ((result=shmcache_init(context, &config,
+                    create_segment)) == EINVAL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "maybe memory related config parameters changed, "
+                "clear all share memory command: "
+                "shmcache_remove_all %s", __LINE__, config_filename);
+    }
+    return result;
 }
 
 void shmcache_destroy(struct shmcache_context *context)
@@ -693,10 +759,16 @@ int shmcache_remove_all(struct shmcache_context *context)
 void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *stats)
 {
     stats->shm = context->memory->stats;
-    stats->hashtable.count = context->memory->hashtable.count;
-    stats->hashtable.segment_size = context->segments.hashtable.size;
-    stats->max_memory = context->segments.hashtable.size +
+    stats->memory.max = context->segments.hashtable.size +
         context->memory->vm_info.segment.size *
         context->memory->vm_info.segment.count.max;
+    stats->memory.alloced = context->memory->usage.alloced;
+    stats->memory.used = context->memory->usage.used;
+    stats->hashtable.count = context->memory->hashtable.count;
+    stats->hashtable.segment_size = context->segments.hashtable.size;
+}
 
+void shmcache_clear_stats(struct shmcache_context *context)
+{
+    memset(&context->memory->stats, 0, sizeof(context->memory->stats));
 }

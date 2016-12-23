@@ -182,8 +182,6 @@ struct shm_stats {
     } hashtable;
 
     struct {
-        int64_t alloced;
-        int64_t used;
 
         struct {
             int64_t total;
@@ -213,6 +211,10 @@ struct shm_memory_info {
     struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
     struct shm_stats stats;
+    struct {
+        int64_t alloced;
+        int64_t used;
+    } usage;
     struct shm_hashtable hashtable;   //must be last
 };
 
@@ -272,9 +274,15 @@ struct shmcache_stats {
     struct shm_stats shm;
     struct {
         int64_t segment_size;  //segment memory size
+        int capacity;
         int count;  //key count
     } hashtable;
-    int64_t max_memory;
+    int max_key_count;
+    struct {
+        int64_t max;
+        int64_t alloced;
+        int64_t used;
+    } memory;
 };
 
 #ifdef __cplusplus

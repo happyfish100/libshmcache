@@ -126,8 +126,17 @@ get stats
 parameters:
 	context: the context pointer
     stats: return the stats
+return none
 */
 void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *stats);
+
+/**
+clear stats
+parameters:
+	context: the context pointer
+return none
+*/
+void shmcache_clear_stats(struct shmcache_context *context);
 
 #ifdef __cplusplus
 }
