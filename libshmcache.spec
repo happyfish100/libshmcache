@@ -1,4 +1,6 @@
 
+%define LibShmcacheTool   libshmcache-tool
+%define LibShmcacheConfig libshmcache-config
 %define LibShmcacheDevel  libshmcache-devel
 %define LibShmcacheDebuginfo  libshmcache-debuginfo
 
@@ -13,29 +15,48 @@ Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
+BuildRequires: libfastcommon-devel >= 1.0.33
+
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
+Requires: libfastcommon >= 1.0.33
 
 %description
 libshmcache is a local share memory cache for multi processes.
 it is high performance because read is lockless.
 this project contains C library and PHP extension.
 
+%package tool
+Summary: tool commands
+Requires: %{name}%{?_isa} = %{version}-%{release}
+
+%description tool
+This package provides tool commands
+
+%package config
+Summary: libshmcache config file
+
+%description config
+This package provides libshmcache config file
+
 %package devel
 Summary: Development header file
 Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description devel
-This pakcage provides the header files of libshmcache
+This package provides the header files of libshmcache
 
 %prep
 %setup -q
 
 %build
 cd src && make clean && make
+cd tools && make clean && make
 
 %install
 rm -rf %{buildroot}
 cd src && DESTDIR=$RPM_BUILD_ROOT make install
+cd tools && DESTDIR=$RPM_BUILD_ROOT make install
+cp conf/libshmcache.conf /$RPM_BUILD_ROOT/etc/
 
 %post
 
@@ -50,6 +71,16 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/lib64/libshmcache.so*
 /usr/lib/libshmcache.so*
+
+%files tool
+/usr/bin/shmcache_set
+/usr/bin/shmcache_get
+/usr/bin/shmcache_delete
+/usr/bin/shmcache_stats
+/usr/bin/shmcache_remove_all
+
+%files config
+/etc/libshmcache.conf
 
 %files devel
 %defattr(-,root,root,-)
