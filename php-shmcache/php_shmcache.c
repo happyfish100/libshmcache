@@ -280,6 +280,108 @@ static PHP_METHOD(ShmCache, delete)
     RETURN_TRUE;
 }
 
+/* array ShmCache::stats()
+ * return stats array
+ */
+static PHP_METHOD(ShmCache, stats)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_stats stats;
+    zval *hashtable;
+    zval *memory;
+    zval *recycle;
+    zval *lock;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+    shmcache_stats(&i_obj->context, &stats);
+    array_init(return_value);
+
+    ALLOC_INIT_ZVAL(hashtable);
+    array_init(hashtable);
+    add_assoc_zval_ex(return_value, "hashtable",
+            sizeof("hashtable"), hashtable);
+    zend_add_assoc_long_ex(hashtable, "max_keys",
+            sizeof("max_keys"), stats.max_key_count);
+    zend_add_assoc_long_ex(hashtable, "current_keys",
+            sizeof("current_keys"), stats.hashtable.count);
+    zend_add_assoc_long_ex(hashtable, "segment_size",
+            sizeof("segment_size"), stats.hashtable.segment_size);
+    zend_add_assoc_long_ex(hashtable, "set.total",
+            sizeof("set.total"), stats.shm.hashtable.set.total);
+    zend_add_assoc_long_ex(hashtable, "set.success",
+            sizeof("set.success"), stats.shm.hashtable.set.success);
+    zend_add_assoc_long_ex(hashtable, "get.total",
+            sizeof("get.total"), stats.shm.hashtable.get.total);
+    zend_add_assoc_long_ex(hashtable, "get.success",
+            sizeof("get.success"), stats.shm.hashtable.get.success);
+    zend_add_assoc_long_ex(hashtable, "del.total",
+            sizeof("del.total"), stats.shm.hashtable.del.total);
+    zend_add_assoc_long_ex(hashtable, "del.success",
+            sizeof("del.success"), stats.shm.hashtable.del.success);
+
+    ALLOC_INIT_ZVAL(memory);
+    array_init(memory);
+    add_assoc_zval_ex(return_value, "memory",
+            sizeof("memory"), memory);
+    zend_add_assoc_long_ex(memory, "total",
+            sizeof("total"), stats.memory.max);
+    zend_add_assoc_long_ex(memory, "alloced",
+            sizeof("alloced"), stats.memory.alloced);
+    zend_add_assoc_long_ex(memory, "used",
+            sizeof("used"), stats.memory.used);
+    zend_add_assoc_long_ex(memory, "free",
+            sizeof("free"), stats.memory.max - stats.memory.used);
+
+    ALLOC_INIT_ZVAL(recycle);
+    array_init(recycle);
+    add_assoc_zval_ex(return_value, "recycle",
+            sizeof("recycle"), recycle);
+    zend_add_assoc_long_ex(recycle, "ht_entry.total",
+            sizeof("ht_entry.total"),
+            stats.shm.memory.clear_ht_entry.total);
+    zend_add_assoc_long_ex(recycle, "ht_entry.valid",
+            sizeof("ht_entry.valid"),
+            stats.shm.memory.clear_ht_entry.valid);
+
+    zend_add_assoc_long_ex(recycle, "by_key.total",
+            sizeof("by_key.total"),
+            stats.shm.memory.recycle.key.total);
+    zend_add_assoc_long_ex(recycle, "by_key.success",
+            sizeof("by_key.success"),
+            stats.shm.memory.recycle.key.success);
+    zend_add_assoc_long_ex(recycle, "by_key.force",
+            sizeof("by_key.force"),
+            stats.shm.memory.recycle.key.force);
+
+    zend_add_assoc_long_ex(recycle, "by_value_striping.total",
+            sizeof("by_value_striping.total"),
+            stats.shm.memory.recycle.value_striping.total);
+    zend_add_assoc_long_ex(recycle, "by_value_striping.success",
+            sizeof("by_value_striping.success"),
+            stats.shm.memory.recycle.value_striping.success);
+    zend_add_assoc_long_ex(recycle, "by_value_striping.force",
+            sizeof("by_value_striping.force"),
+            stats.shm.memory.recycle.value_striping.force);
+
+    ALLOC_INIT_ZVAL(lock);
+    array_init(lock);
+    add_assoc_zval_ex(return_value, "lock",
+            sizeof("lock"), lock);
+    zend_add_assoc_long_ex(lock, "total",
+            sizeof("total"), stats.shm.lock.total);
+    zend_add_assoc_long_ex(lock, "retry",
+            sizeof("retry"), stats.shm.lock.retry);
+    zend_add_assoc_long_ex(lock, "detect_deadlock",
+            sizeof("detect_deadlock"),
+            stats.shm.lock.detect_deadlock);
+    zend_add_assoc_long_ex(lock, "unlock_deadlock",
+            sizeof("unlock_deadlock"),
+            stats.shm.lock.unlock_deadlock);
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, 0, 1)
 ZEND_ARG_INFO(0, config_filename)
 ZEND_END_ARG_INFO()
@@ -301,6 +403,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_delete, 0, 0, 1)
 ZEND_ARG_INFO(0, key)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_stats, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 #define SHMC_ME(name, args) PHP_ME(ShmCache, name, args, ZEND_ACC_PUBLIC)
 static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(__construct,  arginfo___construct)
@@ -308,6 +413,7 @@ static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(set,          arginfo_set)
     SHMC_ME(get,          arginfo_get)
     SHMC_ME(delete,       arginfo_delete)
+    SHMC_ME(stats,        arginfo_stats)
     { NULL, NULL, NULL }
 };
 
