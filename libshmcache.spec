@@ -56,7 +56,7 @@ cd tools && make clean && make
 rm -rf %{buildroot}
 cd src && DESTDIR=$RPM_BUILD_ROOT make install
 cd tools && DESTDIR=$RPM_BUILD_ROOT make install
-cp conf/libshmcache.conf /$RPM_BUILD_ROOT/etc/
+cp ../../conf/libshmcache.conf /$RPM_BUILD_ROOT/etc/
 
 %post
 
