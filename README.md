@@ -26,7 +26,7 @@ the stable features are:
     recycle more than one valid (not expired) hash/KV entries
 
 other features are:
-  * allocate value buffer segement incrementally as need, controled by
+  * allocate value buffer segment incrementally as need, controlled by
     this config parameter: segment_size
   * supply perfect stats info: counters for set, get and delete,
     memory recycle stats, lock stats etc.
