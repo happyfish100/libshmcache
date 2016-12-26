@@ -81,10 +81,10 @@ zend_module_entry shmcache_module_entry = {
 
 static void php_shmcache_destroy(php_shmcache_t *i_obj)
 {
+    shmcache_destroy(&i_obj->context);
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
 	efree(i_obj);
 }
-
 
 ZEND_RSRC_DTOR_FUNC(php_shmcache_dtor)
 {
@@ -115,8 +115,8 @@ zend_object_value php_shmcache_new(zend_class_entry *ce TSRMLS_DC)
 	i_obj = (php_shmcache_t *)ecalloc(1, sizeof(php_shmcache_t));
 
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
-	retval.handle = zend_objects_store_put(i_obj, \
-		(zend_objects_store_dtor_t)zend_objects_destroy_object, \
+	retval.handle = zend_objects_store_put(i_obj,
+		(zend_objects_store_dtor_t)zend_objects_destroy_object,
         NULL, NULL TSRMLS_CC);
 	retval.handlers = zend_get_std_object_handlers();
 
@@ -129,7 +129,8 @@ zend_object* php_shmcache_new(zend_class_entry *ce)
 {
 	php_shmcache_t *i_obj;
 
-	i_obj = (php_shmcache_t *)ecalloc(1, sizeof(php_shmcache_t) + zend_object_properties_size(ce));
+	i_obj = (php_shmcache_t *)ecalloc(1, sizeof(php_shmcache_t) +
+            zend_object_properties_size(ce));
 
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
     object_properties_init(&i_obj->zo, ce);
@@ -159,15 +160,124 @@ static PHP_METHOD(ShmCache, __construct)
 	}
 
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+    if (shmcache_init_from_file(&i_obj->context, config_filename) != 0) {
+		ZVAL_NULL(object);
+		return;
+    }
 }
 
 static PHP_METHOD(ShmCache, __destruct)
 {
-	zval *object = getThis();
+	zval *object;
 	php_shmcache_t *i_obj;
 
+    object = getThis();
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
 	php_shmcache_destroy(i_obj);
+}
+
+/* boolean ShmCache::set(string key, mixed value, long ttl)
+ * return true for success, false for fail
+ */
+static PHP_METHOD(ShmCache, set)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_buffer key;
+    struct shmcache_buffer value;
+    char *key_str;
+    zend_size_t key_len;
+    zval *val;
+    long ttl;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "szl",
+			&key_str, &key_len, &val, &ttl) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    key.data = key_str;
+    key.length = key_len;
+    value.data = key_str;
+    value.length = key_len;
+
+    //TODO: convert value
+    //
+    if (shmcache_set(&i_obj->context, &key, &value, ttl) != 0) {
+		RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
+
+/* mixed ShmCache::get(string key)
+ * return mixed for success, false for fail
+ */
+static PHP_METHOD(ShmCache, get)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_buffer key;
+    struct shmcache_buffer value;
+    char *key_str;
+    zend_size_t key_len;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&key_str, &key_len) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    key.data = key_str;
+    key.length = key_len;
+    if (shmcache_get(&i_obj->context, &key, &value) != 0) {
+		RETURN_FALSE;
+    }
+
+    //TODO: convert value
+    RETURN_TRUE;
+}
+
+/* mixed ShmCache::delete(string key)
+ * return true for success, false for fail
+ */
+static PHP_METHOD(ShmCache, delete)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_buffer key;
+    char *key_str;
+    zend_size_t key_len;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+			&key_str, &key_len) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    key.data = key_str;
+    key.length = key_len;
+    if (shmcache_delete(&i_obj->context, &key) != 0) {
+		RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, 0, 1)
@@ -177,10 +287,27 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo___destruct, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_set, 0, 0, 3)
+ZEND_ARG_INFO(0, key)
+ZEND_ARG_INFO(0, value)
+ZEND_ARG_INFO(0, ttl)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_get, 0, 0, 1)
+ZEND_ARG_INFO(0, key)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_delete, 0, 0, 1)
+ZEND_ARG_INFO(0, key)
+ZEND_END_ARG_INFO()
+
 #define SHMC_ME(name, args) PHP_ME(ShmCache, name, args, ZEND_ACC_PUBLIC)
 static zend_function_entry shmcache_class_methods[] = {
-    SHMC_ME(__construct,        arginfo___construct)
-    SHMC_ME(__destruct,         arginfo___destruct)
+    SHMC_ME(__construct,  arginfo___construct)
+    SHMC_ME(__destruct,   arginfo___destruct)
+    SHMC_ME(set,          arginfo_set)
+    SHMC_ME(get,          arginfo_get)
+    SHMC_ME(delete,       arginfo_delete)
     { NULL, NULL, NULL }
 };
 
