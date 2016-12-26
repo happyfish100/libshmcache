@@ -1,0 +1,54 @@
+%define php_inidir %(php --ini | head -n 1 | awk -F ':' '{print $2;}' | sed 's/ //g')
+%define php_extdir %(php-config --extension-dir 2>/dev/null)
+Name: php-shmcache
+Version: 1.0.0
+Release: 1%{?dist}
+Summary: The php extension for libshmcache
+License: GPL
+Group: Arch/Tech
+URL: 	https://github.com/happyfish100/libshmcache
+Source: https://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
+
+BuildRequires: libfastcommon-devel >= 1.0.33
+BuildRequires: libshmcache-devel >= 1.0.0
+Requires: libfastcommon >= 1.0.33
+Requires: libshmcache >= 1.0.0
+
+%description
+This package provides the php extension for libshmcache
+
+%prep
+%setup -q
+
+%build
+phpize
+%configure
+make
+
+%install
+rm -rf %{buildroot}
+
+mkdir -p %{buildroot}%{php_extdir}
+mkdir -p %{buildroot}%{php_inidir}/php.d
+cp -f .libs/shmcache.so  %{buildroot}%{php_extdir}
+cp -f shmcache.ini %{buildroot}%{php_inidir}/php.d/shmcache.ini
+
+%post
+
+%preun
+
+%postun
+
+%clean
+#rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root,-)
+%{php_extdir}/*
+%{php_inidir}/php.d/*
+
+%changelog
+* Wed Dec 26 2016  Yu Qing<yuqing@yongche.com>
+- first RPM release (1.0)
