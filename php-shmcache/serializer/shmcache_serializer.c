@@ -85,18 +85,7 @@ int shmcache_unserialize(struct shmcache_value_info *value, zval *rv)
 {
     switch (value->options) {
         case SHMCACHE_SERIALIZER_NONE:
-#if PHP_MAJOR_VERSION < 7
-            INIT_ZVAL(*rv);
-            ZVAL_STRINGL(rv, value->data, value->length, 1);
-#else
-            {
-                zend_string *sz_data;
-                bool use_heap_data;
-                ZSTR_ALLOCA_INIT(sz_data, value->data, value->length,
-                        use_heap_data);
-                ZVAL_NEW_STR(rv, sz_data);
-            }
-#endif
+            ZEND_ZVAL_STRINGL(rv, value->data, value->length, 1);
             return 0;
         case SHMCACHE_SERIALIZER_IGBINARY:
             return shmcache_igbinary_unpack(value->data, value->length, rv);
