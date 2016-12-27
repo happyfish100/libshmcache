@@ -152,6 +152,7 @@ static PHP_METHOD(ShmCache, __construct)
     long serializer;
 	zval *object;
 	php_shmcache_t *i_obj;
+    char error_info[128];
 
     object = getThis();
     serializer = SHMCACHE_SERIALIZER_IGBINARY;
@@ -160,21 +161,28 @@ static PHP_METHOD(ShmCache, __construct)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"zend_parse_parameters fail!", __LINE__);
-		ZVAL_NULL(object);
+
+        zend_throw_exception(shmcache_exception_ce,
+                "zend_parse_parameters fail", 0 TSRMLS_CC);
 		return;
 	}
 
     if (!shmcache_serializer_enabled(serializer)) {
-		logError("file: "__FILE__", line: %d, "
-			"php extension: %s not enabled!", __LINE__,
+        sprintf(error_info, "php extension: %s not enabled",
             shmcache_get_serializer_label(serializer));
-		ZVAL_NULL(object);
+		logError("file: "__FILE__", line: %d, %s",
+                __LINE__, error_info);
+        zend_throw_exception(shmcache_exception_ce, error_info,
+                 0 TSRMLS_CC);
 		return;
     }
 
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
     if (shmcache_init_from_file(&i_obj->context, config_filename) != 0) {
-		ZVAL_NULL(object);
+        sprintf(error_info, "shmcache_init_from_file: %s fail",
+                config_filename);
+        zend_throw_exception(shmcache_exception_ce, error_info,
+                 0 TSRMLS_CC);
 		return;
     }
     i_obj->serializer = serializer;
@@ -267,9 +275,13 @@ static PHP_METHOD(ShmCache, get)
     }
 
     if (!shmcache_serializer_enabled(value.options)) {
-		logError("file: "__FILE__", line: %d, "
-			"php extension: %s not enabled!", __LINE__,
+        char error_info[128];
+        sprintf(error_info, "php extension: %s not enabled",
             shmcache_get_serializer_label(value.options));
+		logError("file: "__FILE__", line: %d, %s",
+                __LINE__, error_info);
+        zend_throw_exception(shmcache_exception_ce, error_info,
+                 0 TSRMLS_CC);
 		RETURN_FALSE;
     }
 
