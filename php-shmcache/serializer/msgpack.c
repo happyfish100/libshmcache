@@ -1,5 +1,3 @@
-#include "php.h"
-#include "zend_smart_str.h" /* for smart_str */
 #include "shmcache_serializer.h"
 
 extern void php_msgpack_serialize(smart_str *buf, zval *val);

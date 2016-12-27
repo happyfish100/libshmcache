@@ -16,7 +16,7 @@ if test "$PHP_SHMCACHE" != "no"; then
   PHP_ADD_LIBRARY_WITH_PATH(fastcommon, $ROOT/lib, SHMCACHE_SHARED_LIBADD)
   PHP_ADD_LIBRARY_WITH_PATH(shmcache, $ROOT/lib, SHMCACHE_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(shmcache, php_shmcache.c, $ext_shared)
+  PHP_NEW_EXTENSION(shmcache, serializer/igbinary.c serializer/msgpack.c serializer/php.c serializer/shmcache_serializer.c php_shmcache.c, $ext_shared)
 
   CFLAGS="$CFLAGS -Wall"
 fi

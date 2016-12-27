@@ -12,6 +12,7 @@
 #include "shared_func.h"
 #include "shmcache_types.h"
 #include "shmcache.h"
+#include "serializer/shmcache_serializer.h"
 #include "php_shmcache.h"
 
 #define MAJOR_VERSION  1
