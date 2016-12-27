@@ -443,8 +443,8 @@ int shmcache_init(struct shmcache_context *context,
 
     {
         struct shm_hash_entry *current;
-        struct shmcache_buffer key;
-        struct shmcache_buffer value;
+        struct shmcache_key_info key;
+        struct shmcache_value_info value;
         int64_t bytes;
         int ii;
 
@@ -697,8 +697,8 @@ void shmcache_destroy(struct shmcache_context *context)
 }
 
 int shmcache_set(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        const struct shmcache_buffer *value, const int ttl)
+        const struct shmcache_key_info *key,
+        const struct shmcache_value_info *value, const int ttl)
 {
     int result;
 
@@ -715,8 +715,8 @@ int shmcache_set(struct shmcache_context *context,
 }
 
 int shmcache_get(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        struct shmcache_buffer *value)
+        const struct shmcache_key_info *key,
+        struct shmcache_value_info *value)
 {
     int result;
 
@@ -729,7 +729,7 @@ int shmcache_get(struct shmcache_context *context,
 }
 
 int shmcache_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key)
+        const struct shmcache_key_info *key)
 {
     int result;
     if ((result=shm_lock(context)) != 0) {

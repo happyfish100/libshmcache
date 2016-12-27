@@ -64,8 +64,8 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shm_ht_set(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        const struct shmcache_buffer *value, const int ttl);
+        const struct shmcache_key_info *key,
+        const struct shmcache_value_info *value, const int ttl);
 
 /**
 get value
@@ -76,8 +76,8 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shm_ht_get(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        struct shmcache_buffer *value);
+        const struct shmcache_key_info *key,
+        struct shmcache_value_info *value);
 
 /**
 delete the key for internal usage
@@ -88,7 +88,7 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shm_ht_delete_ex(struct shmcache_context *context,
-        const struct shmcache_buffer *key, bool *recycled);
+        const struct shmcache_key_info *key, bool *recycled);
 
 /**
 delete the key
@@ -98,7 +98,7 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 static inline int shm_ht_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key)
+        const struct shmcache_key_info *key)
 {
     bool recycled;
     return shm_ht_delete_ex(context, key, &recycled);

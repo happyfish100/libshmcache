@@ -52,8 +52,8 @@ static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
 }
 
 int shm_ht_set(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        const struct shmcache_buffer *value, const int ttl)
+        const struct shmcache_key_info *key,
+        const struct shmcache_value_info *value, const int ttl)
 {
     int result;
     unsigned int index;
@@ -132,6 +132,7 @@ int shm_ht_set(struct shmcache_context *context,
     hvalue = shm_ht_get_value_ptr(context, &new_value);
     memcpy(hvalue, value->data, value->length);
     new_value.length = value->length;
+    new_value.options = value->options;
 
     entry->value = new_value;
     entry->expires = HT_CALC_EXPIRES(g_current_time, ttl);
@@ -157,8 +158,8 @@ int shm_ht_set(struct shmcache_context *context,
 }
 
 int shm_ht_get(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        struct shmcache_buffer *value)
+        const struct shmcache_key_info *key,
+        struct shmcache_value_info *value)
 {
     unsigned int index;
     int64_t entry_offset;
@@ -172,6 +173,7 @@ int shm_ht_get(struct shmcache_context *context,
             if (HT_ENTRY_IS_VALID(entry, get_current_time())) {
                 value->data = shm_ht_get_value_ptr(context, &entry->value);
                 value->length = entry->value.length;
+                value->options = entry->value.options;
                 return 0;
             } else {
                 return ETIMEDOUT;
@@ -185,7 +187,7 @@ int shm_ht_get(struct shmcache_context *context,
 }
 
 int shm_ht_delete_ex(struct shmcache_context *context,
-        const struct shmcache_buffer *key, bool *recycled)
+        const struct shmcache_key_info *key, bool *recycled)
 {
     int result;
     unsigned int index;

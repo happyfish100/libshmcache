@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     int index;
     char *config_filename;
     struct shmcache_context context;
-    struct shmcache_buffer key;
+    struct shmcache_key_info key;
 
     if (argc >= 2 && (strcmp(argv[1], "-h") == 0 ||
                 strcmp(argv[1], "help") == 0 ||

@@ -183,8 +183,8 @@ static PHP_METHOD(ShmCache, set)
 {
 	zval *object;
 	php_shmcache_t *i_obj;
-    struct shmcache_buffer key;
-    struct shmcache_buffer value;
+    struct shmcache_key_info key;
+    struct shmcache_value_info value;
     char *key_str;
     zend_size_t key_len;
     zval *val;
@@ -223,8 +223,8 @@ static PHP_METHOD(ShmCache, get)
 {
 	zval *object;
 	php_shmcache_t *i_obj;
-    struct shmcache_buffer key;
-    struct shmcache_buffer value;
+    struct shmcache_key_info key;
+    struct shmcache_value_info value;
     char *key_str;
     zend_size_t key_len;
 
@@ -256,7 +256,7 @@ static PHP_METHOD(ShmCache, delete)
 {
 	zval *object;
 	php_shmcache_t *i_obj;
-    struct shmcache_buffer key;
+    struct shmcache_key_info key;
     char *key_str;
     zend_size_t key_len;
 

@@ -84,6 +84,7 @@ struct shm_value {
     int64_t offset; //value segment offset
     int size;       //alloc size
     int length;     //value length
+    int options;    //options for application
     struct shm_segment_striping_pair index;
 };
 
@@ -219,9 +220,15 @@ struct shm_memory_info {
     struct shm_hashtable hashtable;   //must be last
 };
 
-struct shmcache_buffer {
+struct shmcache_key_info {
     char *data;
     int length;
+};
+
+struct shmcache_value_info {
+    char *data;
+    int length;
+    int options;    //options for application
 };
 
 struct shmcache_segment_info {

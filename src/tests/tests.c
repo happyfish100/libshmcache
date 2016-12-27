@@ -18,8 +18,8 @@ int main(int argc, char *argv[])
 
 	int result;
     struct shmcache_context context;
-    struct shmcache_buffer key;
-    struct shmcache_buffer value;
+    struct shmcache_key_info key;
+    struct shmcache_value_info value;
     char szKey[SHMCACHE_MAX_KEY_SIZE];
     char szValue[MAX_VALUE_SIZE];
     int ttl = 600;

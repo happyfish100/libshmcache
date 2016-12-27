@@ -88,7 +88,7 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
 {
     int64_t entry_offset;
     struct shm_hash_entry *entry;
-    struct shmcache_buffer key;
+    struct shmcache_key_info key;
     int result;
     int index;
     int clear_count;

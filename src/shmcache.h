@@ -90,8 +90,8 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_set(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        const struct shmcache_buffer *value, const int ttl);
+        const struct shmcache_key_info *key,
+        const struct shmcache_value_info *value, const int ttl);
 
 /**
 get value
@@ -102,8 +102,8 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_get(struct shmcache_context *context,
-        const struct shmcache_buffer *key,
-        struct shmcache_buffer *value);
+        const struct shmcache_key_info *key,
+        struct shmcache_value_info *value);
 
 /**
 delte the key
@@ -113,7 +113,7 @@ parameters:
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_delete(struct shmcache_context *context,
-        const struct shmcache_buffer *key);
+        const struct shmcache_key_info *key);
 
 
 /**
