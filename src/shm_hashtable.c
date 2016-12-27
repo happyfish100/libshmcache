@@ -37,7 +37,7 @@ void shm_ht_init(struct shmcache_context *context, const int capacity)
         && memcmp(hvalue, pvalue->data, pvalue->length) == 0)
 
 #define HT_CALC_EXPIRES(current_time, ttl) \
-    (ttl == SHMCACHE_NEVER_EXPIRED_TTL ? 0 : current_time + ttl)
+    (ttl == SHMCACHE_NEVER_EXPIRED ? 0 : current_time + ttl)
 
 static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
         const struct shm_value *value)

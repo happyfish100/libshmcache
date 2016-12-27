@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     key.length = strlen(key.data);
     value.data = argv[index++];
     value.length = strlen(value.data);
+    value.options = 0;
     ttl = atoi(argv[index++]);
     result = shmcache_set(&context, &key, &value, ttl);
     if (result == 0) {

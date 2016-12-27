@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
     memset(szValue, 'A', sizeof(szValue));
     key.data = szKey;
     value.data = szValue;
+    value.options = 0;
     for (i=0; i<10000; i++) {
         key.length = sprintf(key.data, "key_%04d", i + 1);
         value.length = (MAX_VALUE_SIZE * (int64_t)rand()) / (int64_t)RAND_MAX;

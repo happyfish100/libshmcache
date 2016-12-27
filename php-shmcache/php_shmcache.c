@@ -24,6 +24,7 @@ typedef struct
 	zend_object zo;
 #endif
 	struct shmcache_context context;
+    int serializer;
 #if PHP_MAJOR_VERSION >= 7
 	zend_object zo;
 #endif
@@ -140,18 +141,21 @@ zend_object* php_shmcache_new(zend_class_entry *ce)
 
 #endif
 
-/* ShmCache::__construct([int config_index = 0, bool bMultiThread = false])
+/* ShmCache::__construct(string config_filename[, long serializer =
+ * ShmCache::SERIALIZER_IGBINARY])
    Creates a ShmCache object */
 static PHP_METHOD(ShmCache, __construct)
 {
 	char *config_filename;
     zend_size_t filename_len;
+    long serializer;
 	zval *object;
 	php_shmcache_t *i_obj;
 
     object = getThis();
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
-			&config_filename, &filename_len) == FAILURE)
+    serializer = SHMCACHE_SERIALIZER_IGBINARY;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l",
+			&config_filename, &filename_len, &serializer) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"zend_parse_parameters fail!", __LINE__);
@@ -164,6 +168,7 @@ static PHP_METHOD(ShmCache, __construct)
 		ZVAL_NULL(object);
 		return;
     }
+    i_obj->serializer = serializer;
 }
 
 static PHP_METHOD(ShmCache, __destruct)
@@ -446,6 +451,19 @@ PHP_MINIT_FUNCTION(shmcache)
 	shmcache_exception_ce = zend_register_internal_class_ex(&ce, \
 		php_shmcache_get_exception_base(0 TSRMLS_CC));
 #endif
+
+     zend_declare_class_constant_long(&ce, ZEND_STRL("NEVER_EXPIRED"),
+             SHMCACHE_NEVER_EXPIRED TSRMLS_CC);
+
+     /* serializer */
+     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_NONE"),
+             SHMCACHE_SERIALIZER_NONE TSRMLS_CC);
+     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_IGBINARY"),
+             SHMCACHE_SERIALIZER_IGBINARY TSRMLS_CC);
+     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_MSGPACK"),
+             SHMCACHE_SERIALIZER_MSGPACK TSRMLS_CC);
+     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_PHP"),
+             SHMCACHE_SERIALIZER_PHP TSRMLS_CC);
 
 	return SUCCESS;
 }
