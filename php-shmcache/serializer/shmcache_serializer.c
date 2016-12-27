@@ -11,10 +11,13 @@ extern int shmcache_msgpack_unpack(char *content, size_t len, zval *rv);
 extern int shmcache_igbinary_pack(zval *pzval, char **buf, int *len);
 extern int shmcache_igbinary_unpack(char *content, size_t len, zval *rv);
 
-int shmcache_serialize(const int serializer, zval *pzval,
+int shmcache_serialize(zval *pzval,
         struct shmcache_serialize_output *output)
 {
     int result;
+    int serializer;
+
+    serializer = output->value->options;
     switch (serializer) {
         case SHMCACHE_SERIALIZER_NONE:
             if (Z_TYPE_P(pzval) == IS_STRING) {
@@ -63,10 +66,9 @@ int shmcache_serialize(const int serializer, zval *pzval,
     }
 }
 
-void shmcache_free_serialize_output(const int serializer,
-        struct shmcache_serialize_output *output)
+void shmcache_free_serialize_output(struct shmcache_serialize_output *output)
 {
-    switch (serializer) {
+    switch (output->value->options) {
         case SHMCACHE_SERIALIZER_IGBINARY:
             efree(output->value->data);
             break;
@@ -79,33 +81,33 @@ void shmcache_free_serialize_output(const int serializer,
     }
 }
 
-int shmcache_unserialize(const int serializer,
-        char *content, size_t len, zval *rv)
+int shmcache_unserialize(struct shmcache_value_info *value, zval *rv)
 {
-    switch (serializer) {
+    switch (value->options) {
         case SHMCACHE_SERIALIZER_NONE:
 #if PHP_MAJOR_VERSION < 7
             INIT_ZVAL(*rv);
-            ZVAL_STRINGL(rv, content, len, 1);
+            ZVAL_STRINGL(rv, value->data, value->length, 1);
 #else
             {
                 zend_string *sz_data;
                 bool use_heap_data;
-                ZSTR_ALLOCA_INIT(sz_data, content, len, use_heap_data);
+                ZSTR_ALLOCA_INIT(sz_data, value->data, value->length,
+                        use_heap_data);
                 ZVAL_NEW_STR(rv, sz_data);
             }
 #endif
             return 0;
         case SHMCACHE_SERIALIZER_IGBINARY:
-            return shmcache_igbinary_unpack(content, len, rv);
+            return shmcache_igbinary_unpack(value->data, value->length, rv);
         case SHMCACHE_SERIALIZER_MSGPACK:
-            return shmcache_msgpack_unpack(content, len, rv);
+            return shmcache_msgpack_unpack(value->data, value->length, rv);
         case SHMCACHE_SERIALIZER_PHP:
-            return shmcache_php_unpack(content, len, rv);
+            return shmcache_php_unpack(value->data, value->length, rv);
         default:
             logError("file: "__FILE__", line: %d, "
                     "invalid serializer: %d",
-                    __LINE__, serializer);
+                    __LINE__, value->options);
             return EINVAL;
     }
 }

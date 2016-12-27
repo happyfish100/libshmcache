@@ -216,12 +216,12 @@ static PHP_METHOD(ShmCache, set)
     value.options = i_obj->serializer;
     output.buf = &buf;
     output.value = &value;
-    if (shmcache_serialize(i_obj->serializer, val, &output) != 0) {
+    if (shmcache_serialize(val, &output) != 0) {
 		RETURN_FALSE;
     }
 
     result = shmcache_set(&i_obj->context, &key, &value, ttl);
-    shmcache_free_serialize_output(i_obj->serializer, &output);
+    shmcache_free_serialize_output(&output);
     if (result != 0) {
 		RETURN_FALSE;
     }
@@ -258,9 +258,7 @@ static PHP_METHOD(ShmCache, get)
 		RETURN_FALSE;
     }
 
-    if (shmcache_unserialize(i_obj->serializer,
-                value.data, value.length, return_value) != 0)
-    {
+    if (shmcache_unserialize(&value, return_value) != 0) {
 		RETURN_FALSE;
     }
     if (return_value == NULL) {

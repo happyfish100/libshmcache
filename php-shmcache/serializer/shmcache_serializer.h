@@ -25,14 +25,11 @@ struct shmcache_serialize_output {
 extern "C" {
 #endif
 
-int shmcache_serialize(const int serializer, zval *pzval,
-        struct shmcache_serialize_output *output);
+int shmcache_serialize(zval *pzval, struct shmcache_serialize_output *output);
 
-void shmcache_free_serialize_output(const int serializer,
-        struct shmcache_serialize_output *output);
+void shmcache_free_serialize_output(struct shmcache_serialize_output *output);
 
-int shmcache_unserialize(const int serializer,
-        char *content, size_t len, zval *rv);
+int shmcache_unserialize(struct shmcache_value_info *value, zval *rv);
 
 #ifdef __cplusplus
 }
