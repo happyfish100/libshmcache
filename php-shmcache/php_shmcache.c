@@ -164,6 +164,14 @@ static PHP_METHOD(ShmCache, __construct)
 		return;
 	}
 
+    if (!shmcache_serializer_enabled(serializer)) {
+		logError("file: "__FILE__", line: %d, "
+			"php extension: %s not enabled!", __LINE__,
+            shmcache_get_serializer_label(serializer));
+		ZVAL_NULL(object);
+		return;
+    }
+
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
     if (shmcache_init_from_file(&i_obj->context, config_filename) != 0) {
 		ZVAL_NULL(object);
@@ -255,6 +263,13 @@ static PHP_METHOD(ShmCache, get)
     key.data = key_str;
     key.length = key_len;
     if (shmcache_get(&i_obj->context, &key, &value) != 0) {
+		RETURN_FALSE;
+    }
+
+    if (!shmcache_serializer_enabled(value.options)) {
+		logError("file: "__FILE__", line: %d, "
+			"php extension: %s not enabled!", __LINE__,
+            shmcache_get_serializer_label(value.options));
 		RETURN_FALSE;
     }
 
@@ -434,7 +449,6 @@ static zend_function_entry shmcache_class_methods[] = {
     { NULL, NULL, NULL }
 };
 
-
 PHP_MINIT_FUNCTION(shmcache)
 {
 	zend_class_entry ce;
@@ -477,7 +491,9 @@ PHP_MINIT_FUNCTION(shmcache)
      zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_PHP"),
              SHMCACHE_SERIALIZER_PHP TSRMLS_CC);
 
-	return SUCCESS;
+     shmcache_load_functions();
+
+     return SUCCESS;
 }
 
 PHP_MSHUTDOWN_FUNCTION(shmcache)

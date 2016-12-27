@@ -2,6 +2,13 @@
 #include "logger.h"
 #include "shmcache_serializer.h"
 
+php_msgpack_serialize_func msgpack_serialize_func = NULL;
+php_msgpack_unserialize_func msgpack_unserialize_func = NULL;
+igbinary_serialize_func igbinary_pack_func = NULL;
+igbinary_unserialize_func igbinary_unpack_func = NULL;
+
+int shmcache_serializers = SHMCACHE_SERIALIZER_PHP;
+
 extern int shmcache_php_pack(zval *pzval, smart_str *buf);
 extern int shmcache_php_unpack(char *content, size_t len, zval *rv);
 
@@ -10,6 +17,36 @@ extern int shmcache_msgpack_unpack(char *content, size_t len, zval *rv);
 
 extern int shmcache_igbinary_pack(zval *pzval, char **buf, int *len);
 extern int shmcache_igbinary_unpack(char *content, size_t len, zval *rv);
+
+int shmcache_load_functions()
+{
+    void *handle;
+
+    handle = dlopen(NULL, RTLD_LAZY);
+    if (handle == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "call dlopen fail, error: %s",
+                __LINE__, dlerror());
+        return errno != 0 ? errno : EFAULT;
+    }
+    msgpack_serialize_func = (php_msgpack_serialize_func)dlsym(handle,
+            "php_msgpack_serialize");
+    msgpack_unserialize_func = (php_msgpack_unserialize_func)dlsym(handle,
+            "php_msgpack_unserialize");
+    igbinary_pack_func = (igbinary_serialize_func)dlsym(handle,
+            "igbinary_serialize");
+    igbinary_unpack_func = (igbinary_unserialize_func)dlsym(handle,
+            "igbinary_unserialize");
+    if (msgpack_serialize_func != NULL && msgpack_unserialize_func != NULL) {
+        shmcache_serializers |= SHMCACHE_SERIALIZER_MSGPACK;
+    }
+    if (igbinary_pack_func != NULL && igbinary_unpack_func != NULL) {
+        shmcache_serializers |= SHMCACHE_SERIALIZER_IGBINARY;
+    }
+
+    dlclose(handle);
+    return 0;
+}
 
 int shmcache_serialize(zval *pzval,
         struct shmcache_serialize_output *output)
