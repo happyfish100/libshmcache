@@ -31,11 +31,6 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    config_filename = "/etc/libshmcache.conf";
-    if (argc >= 2 && isFile(argv[1])) {
-       config_filename = argv[1];
-    }
-
     clear_stats = false;
     if (argc >= 2) {
         last_index = argc - 1;
@@ -43,6 +38,17 @@ int main(int argc, char *argv[])
                 strcmp(argv[last_index], "clear") == 0)
         {
             clear_stats = true;
+        }
+    }
+
+    config_filename = "/etc/libshmcache.conf";
+    if (argc >= 2) {
+        if (argc == 2) {
+            if (!clear_stats) {
+                config_filename = argv[1];
+            }
+        } else {
+            config_filename = argv[1];
         }
     }
 

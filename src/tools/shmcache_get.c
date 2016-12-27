@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
     key.length = strlen(key.data);
     result = shmcache_get(&context, &key, &value);
     if (result == 0) {
-        printf("value length: %d, value:\n%.*s\n", value.length,
-                value.length, value.data);
+        printf("value options: %d, value length: %d, value:\n%.*s\n",
+                value.options, value.length, value.length, value.data);
     } else {
         fprintf(stderr, "get key: %s fail, errno: %d\n",  key.data, result);
     }

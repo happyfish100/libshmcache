@@ -191,10 +191,13 @@ static PHP_METHOD(ShmCache, set)
 	php_shmcache_t *i_obj;
     struct shmcache_key_info key;
     struct shmcache_value_info value;
+    struct shmcache_serialize_output output;
+    smart_str buf = {0};
     char *key_str;
     zend_size_t key_len;
     zval *val;
     long ttl;
+    int result;
 
     object = getThis();
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
@@ -209,18 +212,22 @@ static PHP_METHOD(ShmCache, set)
 
     key.data = key_str;
     key.length = key_len;
-    value.data = key_str;
-    value.length = key_len;
 
-    //TODO: convert value
-    //
-    if (shmcache_set(&i_obj->context, &key, &value, ttl) != 0) {
+    value.options = i_obj->serializer;
+    output.buf = &buf;
+    output.value = &value;
+    if (shmcache_serialize(i_obj->serializer, val, &output) != 0) {
+		RETURN_FALSE;
+    }
+
+    result = shmcache_set(&i_obj->context, &key, &value, ttl);
+    shmcache_free_serialize_output(i_obj->serializer, &output);
+    if (result != 0) {
 		RETURN_FALSE;
     }
 
     RETURN_TRUE;
 }
-
 
 /* mixed ShmCache::get(string key)
  * return mixed for success, false for fail
@@ -251,8 +258,14 @@ static PHP_METHOD(ShmCache, get)
 		RETURN_FALSE;
     }
 
-    //TODO: convert value
-    RETURN_TRUE;
+    if (shmcache_unserialize(i_obj->serializer,
+                value.data, value.length, return_value) != 0)
+    {
+		RETURN_FALSE;
+    }
+    if (return_value == NULL) {
+		RETURN_FALSE;
+    }
 }
 
 /* mixed ShmCache::delete(string key)
@@ -453,17 +466,17 @@ PHP_MINIT_FUNCTION(shmcache)
 		php_shmcache_get_exception_base(0 TSRMLS_CC));
 #endif
 
-     zend_declare_class_constant_long(&ce, ZEND_STRL("NEVER_EXPIRED"),
+     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("NEVER_EXPIRED"),
              SHMCACHE_NEVER_EXPIRED TSRMLS_CC);
 
      /* serializer */
-     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_NONE"),
+     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_NONE"),
              SHMCACHE_SERIALIZER_NONE TSRMLS_CC);
-     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_IGBINARY"),
+     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_IGBINARY"),
              SHMCACHE_SERIALIZER_IGBINARY TSRMLS_CC);
-     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_MSGPACK"),
+     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_MSGPACK"),
              SHMCACHE_SERIALIZER_MSGPACK TSRMLS_CC);
-     zend_declare_class_constant_long(&ce, ZEND_STRL("SERIALIZER_PHP"),
+     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_PHP"),
              SHMCACHE_SERIALIZER_PHP TSRMLS_CC);
 
 	return SUCCESS;
