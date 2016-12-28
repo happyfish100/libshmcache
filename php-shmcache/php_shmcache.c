@@ -293,7 +293,7 @@ static PHP_METHOD(ShmCache, get)
     }
 }
 
-/* mixed ShmCache::delete(string key)
+/* boolean ShmCache::delete(string key)
  * return true for success, false for fail
  */
 static PHP_METHOD(ShmCache, delete)
@@ -468,13 +468,14 @@ PHP_MINIT_FUNCTION(shmcache)
 	log_init();
 
 #if PHP_MAJOR_VERSION >= 7
-	memcpy(&shmcache_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	memcpy(&shmcache_object_handlers, zend_get_std_object_handlers(),
+            sizeof(zend_object_handlers));
 	shmcache_object_handlers.offset = XtOffsetOf(php_shmcache_t, zo);
 	shmcache_object_handlers.free_obj = NULL;
 	shmcache_object_handlers.clone_obj = NULL;
 #endif
 
-	le_shmcache = zend_register_list_destructors_ex(NULL, php_shmcache_dtor, \
+	le_shmcache = zend_register_list_destructors_ex(NULL, php_shmcache_dtor,
 			"ShmCache", module_number);
 
 	INIT_CLASS_ENTRY(ce, "ShmCache", shmcache_class_methods);
@@ -483,10 +484,10 @@ PHP_MINIT_FUNCTION(shmcache)
 
 	INIT_CLASS_ENTRY(ce, "ShmCacheException", NULL);
 #if PHP_MAJOR_VERSION < 7
-	shmcache_exception_ce = zend_register_internal_class_ex(&ce, \
+	shmcache_exception_ce = zend_register_internal_class_ex(&ce,
 		php_shmcache_get_exception_base(0 TSRMLS_CC), NULL TSRMLS_CC);
 #else
-	shmcache_exception_ce = zend_register_internal_class_ex(&ce, \
+	shmcache_exception_ce = zend_register_internal_class_ex(&ce,
 		php_shmcache_get_exception_base(0 TSRMLS_CC));
 #endif
 
