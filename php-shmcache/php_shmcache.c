@@ -24,12 +24,25 @@ typedef struct
 #if PHP_MAJOR_VERSION < 7
 	zend_object zo;
 #endif
-	struct shmcache_context context;
+	struct shmcache_context *context;
     int serializer;
 #if PHP_MAJOR_VERSION >= 7
 	zend_object zo;
 #endif
 } php_shmcache_t;
+
+struct shmcache_context_by_file {
+    char *config_filename;
+    struct shmcache_context *context;
+};
+static struct shmcache_context_array {
+    struct shmcache_context_by_file *contexts;
+    int count;
+    int alloc;
+} context_array = {NULL, 0, 0};
+
+static struct shmcache_context *shmcache_get_context(const char *filename,
+        char *error_info, const int error_size);
 
 #if PHP_MAJOR_VERSION < 7
 #define shmcache_get_object(obj) zend_object_store_get_object(obj)
@@ -83,7 +96,6 @@ zend_module_entry shmcache_module_entry = {
 
 static void php_shmcache_destroy(php_shmcache_t *i_obj)
 {
-    shmcache_destroy(&i_obj->context);
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
 	efree(i_obj);
 }
@@ -178,9 +190,9 @@ static PHP_METHOD(ShmCache, __construct)
     }
 
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
-    if (shmcache_init_from_file(&i_obj->context, config_filename) != 0) {
-        sprintf(error_info, "shmcache_init_from_file: %s fail",
-                config_filename);
+    i_obj->context = shmcache_get_context(config_filename,
+            error_info, sizeof(error_info));
+    if (i_obj->context == NULL) {
         zend_throw_exception(shmcache_exception_ce, error_info,
                  0 TSRMLS_CC);
 		return;
@@ -236,7 +248,7 @@ static PHP_METHOD(ShmCache, set)
 		RETURN_FALSE;
     }
 
-    result = shmcache_set(&i_obj->context, &key, &value, ttl);
+    result = shmcache_set(i_obj->context, &key, &value, ttl);
     shmcache_free_serialize_output(&output);
     if (result != 0) {
 		RETURN_FALSE;
@@ -270,7 +282,7 @@ static PHP_METHOD(ShmCache, get)
 
     key.data = key_str;
     key.length = key_len;
-    if (shmcache_get(&i_obj->context, &key, &value) != 0) {
+    if (shmcache_get(i_obj->context, &key, &value) != 0) {
 		RETURN_FALSE;
     }
 
@@ -317,7 +329,7 @@ static PHP_METHOD(ShmCache, delete)
 
     key.data = key_str;
     key.length = key_len;
-    if (shmcache_delete(&i_obj->context, &key) != 0) {
+    if (shmcache_delete(i_obj->context, &key) != 0) {
 		RETURN_FALSE;
     }
 
@@ -340,7 +352,7 @@ static PHP_METHOD(ShmCache, stats)
     object = getThis();
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
 
-    shmcache_stats(&i_obj->context, &stats);
+    shmcache_stats(i_obj->context, &stats);
     array_init(return_value);
 
     ALLOC_INIT_ZVAL(hashtable);
@@ -594,4 +606,73 @@ PHP_SHMCACHE_API zend_class_entry *php_shmcache_get_exception_base(int root TSRM
 #else
 	return zend_exception_get_default(TSRMLS_C);
 #endif
+}
+
+static struct shmcache_context *shmcache_get_context(const char *filename,
+        char *error_info, const int error_size)
+{
+    int i;
+    int bytes;
+    char *config_filename;
+    struct shmcache_context *context;
+
+    for (i=0; i<context_array.count; i++) {
+        if (strcmp(filename, context_array.contexts[i].config_filename) == 0) {
+            return context_array.contexts[i].context;
+        }
+    }
+
+    if (context_array.count >= context_array.alloc) {
+        int alloc;
+        struct shmcache_context_by_file *contexts;
+        if (context_array.alloc == 0) {
+            alloc = 2;
+        } else {
+            alloc = context_array.alloc * 2;
+        }
+
+        bytes = sizeof(struct shmcache_context_by_file) * alloc;
+        contexts = (struct shmcache_context_by_file *)malloc(bytes);
+        if (contexts == NULL) {
+            snprintf(error_info, error_size,
+                    "malloc %d bytes fail", bytes);
+            return NULL;
+        }
+        memset(contexts, 0, bytes);
+        if (context_array.count > 0) {
+            memcpy(contexts, context_array.contexts, context_array.count *
+                    sizeof(struct shmcache_context_by_file));
+            free(context_array.contexts);
+        }
+        context_array.contexts = contexts;
+        context_array.alloc = alloc;
+    }
+
+    config_filename = strdup(filename);
+    if (config_filename == NULL) {
+        snprintf(error_info, error_size,
+			"strdup filename: %s fail", filename);
+        return NULL;
+    }
+    context = (struct shmcache_context *)malloc(
+            sizeof(struct shmcache_context));
+    if (context == NULL) {
+        snprintf(error_info, error_size, "malloc %d bytes fail",
+                (int)sizeof(struct shmcache_context));
+        return NULL;
+    }
+
+    if (shmcache_init_from_file(context, config_filename) != 0) {
+        sprintf(error_info, "shmcache_init_from_file: %s fail",
+                config_filename);
+        free(config_filename);
+        free(context);
+        return NULL;
+    }
+
+    context_array.contexts[context_array.count].
+        config_filename = config_filename;
+    context_array.contexts[context_array.count].context = context;
+    context_array.count++;
+    return context;
 }

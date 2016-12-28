@@ -44,7 +44,7 @@ ShmCache::__construct(string $config_filename[, long $serializer =
       ShmCache::SERIALIZER_PHP for php serializer
       ShmCache::SERIALIZER_NONE only support string variable
     </pre>
-  * @throws exception if the serializer not enabled
+  * @throws ShmCacheException if the serializer not enabled
   * @example: $cache = new ShmCache("/etc/libshmcache.conf");
   * @note: igbinary and msgpack php extensions must be enabled before use them
     <pre>
