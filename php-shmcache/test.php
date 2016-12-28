@@ -5,13 +5,11 @@ $value = array('name' => 'yuqing', 'score' => 90.5, 'city' => 'beijing', 'gender
 //$value = json_encode($value, JSON_PRETTY_PRINT);
 
 $cache = new ShmCache('/etc/libshmcache.conf', ShmCache::SERIALIZER_IGBINARY);
-$cache = new ShmCache('/etc/libshmcache.conf', ShmCache::SERIALIZER_IGBINARY);
 for ($i=0; $i<1024; $i++) {
     $cache->set($key, $value, 300);
 }
 var_dump($cache->get($key));
 var_dump($cache->delete($key));
-
 
 //var_dump($cache->stats());
 echo json_encode($cache->stats(), JSON_PRETTY_PRINT);
