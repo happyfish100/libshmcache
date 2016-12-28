@@ -39,22 +39,25 @@ ShmCache::__construct(string config_filename[, long serializer =
         ShmCache::SERIALIZER_IGBINARY])
   * @param config_filename: the config filename as conf/libshmcache.conf
   * @param serializer: the serializer type
-    **  ShmCache::SERIALIZER_IGBINARY for igbinary, the default serializer
-    **  ShmCache::SERIALIZER_MSGPACK for msgpack
-    **  ShmCache::SERIALIZER_PHP for php serializer
-    **  ShmCache::SERIALIZER_NONE only support string variable
+    <pre>
+      ShmCache::SERIALIZER_IGBINARY for igbinary, the default serializer
+      ShmCache::SERIALIZER_MSGPACK for msgpack
+      ShmCache::SERIALIZER_PHP for php serializer
+      ShmCache::SERIALIZER_NONE only support string variable
+    </pre>
+  * @throws exception if the serializer not enabled
   * @example: $cache = new ShmCache("/etc/libshmcache.conf");
   * @note: igbinary and msgpack php extensions must be enabled before use them
-  <pre>
+    <pre>
     check method:
     php -m | grep igbinary
     php -m | grep msgpack
-  </pre>
+    </pre>
 
 boolean ShmCache::set(string key, mixed value, long ttl)
   * @param key: the key, must be a string variable
   * @param value: the value, any php variable
-  * @param ttl: timeout / expire in seconds, such as 600 for ten minutes
+  * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
     ShmCache::NEVER_EXPIRED for never expired
   * @return true for success, false for fail
   * @example: $cache->set($key, $value, 300);
