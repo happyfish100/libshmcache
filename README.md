@@ -4,31 +4,31 @@ libshmcache may be copied only under the terms of the Less GNU General
 Public License(LGPL).
 
 libshmcache is a local share memory cache for multi processes.
-it is high performance because read is lockless.
+it is a high performance library because read mechanism is lockless.
 
-this project contains C library and PHP extension.
+this project contains C library and a PHP extension.
 
-the high performance features are:
-  * pthread mutext lock on write, read is lockless
-  * use hash table for quickly set, get and delete
+Its high performance features include:
+  * pthread mutex lock on write, read is lockless
+  * use hash table for quickly setting, getting and deletion
   * use object pool (FIFO queue) for hash/KV entry allocation
   * use striping/block buffer allocator. in a memory striping,
-    allocate the value buffer in order. just only decrease the allocator's
+    allocate value buffer in order. just only decrease allocator's
     used size when free the value buffer. recycle the whole memory
-    striping/allocator when it's used size is zero after free.
+    striping/allocator when it's used size reach to zero after memory free up.
   * use FIFO elimination algorithm instead of LRU
 
-the stable features are:
-  * deadlock detect and auto unlock which caused by other crushed process
-  * check some key fields for consistency when init, the old share memories
+stable features are:
+  * deadlock detection and auto unlock that caused by other crushed process
+  * check some key fields for consistency when init, old share memories
     should be cleaned and reinit when the memory related parameters changed
-  * sleep some time to avoid other processes read dirty data when
+  * add sleep time to avoid other processes reading dirty data when
     recycle more than one valid (not expired) hash/KV entries
 
 other features are:
-  * allocate value buffer segment incrementally as need, controlled by
-    this config parameter: segment_size
-  * supply perfect stats info: counters for set, get and delete,
+  * incrementally allocate value buffer segment as need, this is controlled
+    by config parameter: segment_size
+  * provide abundant stats info: counters for set, get and delete,
     memory recycle stats, lock stats etc.
 
 
