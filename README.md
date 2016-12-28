@@ -34,7 +34,7 @@ other features are:
 
 libshmcache PHP extension is supplied in diretory: php-shmcache, support PHP 5 and PHP 7
 
-ShmCache::__construct(string config_filename[, long serializer =
+ShmCache::__construct(string $config_filename[, long $serializer =
         ShmCache::SERIALIZER_IGBINARY])
   * @param config_filename: the config filename as conf/libshmcache.conf
   * @param serializer: the serializer type
@@ -53,7 +53,7 @@ ShmCache::__construct(string config_filename[, long serializer =
     php -m | grep msgpack
     </pre>
 
-boolean ShmCache::set(string key, mixed value, long ttl)
+boolean ShmCache::set(string $key, mixed $value, long $ttl)
   * @param key: the key, must be a string variable
   * @param value: the value, any php variable
   * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
@@ -61,12 +61,12 @@ boolean ShmCache::set(string key, mixed value, long ttl)
   * @return true for success, false for fail
   * @example: $cache->set($key, $value, 300);
 
-mixed ShmCache::get(string key)
+mixed ShmCache::get(string $key)
   * @param key: the key, must be a string variable
   * @return mixed value for success, false for key not exist or expired
   * @example: $value = $cache->get($key);
 
-boolean ShmCache::delete(string key)
+boolean ShmCache::delete(string $key)
   * @param key: the key, must be a string variable
   * @return true for success, false for fail
   * @example: $cache->delete($key);
