@@ -88,5 +88,5 @@ rm -rf %{buildroot}
 /usr/include/shmcache/*
 
 %changelog
-* Mon Dec 23 2016  Yu Qing <yuqing@yongche.com>
+* Fri Dec 23 2016  Yu Qing <yuqing@yongche.com>
 - first RPM release (1.0)

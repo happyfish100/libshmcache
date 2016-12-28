@@ -14,6 +14,8 @@ cd libfastcommon && ./make.sh && ./make.sh install
 #step 2. compile && install libshmcache
 git clone https://github.com/happyfish100/libshmcache
 cd libshmcache/src && make && make install
+cd tools && make && make install
+cd ../..
 
 #step 3. compile && install libshmcache php extension
 cd php-shmcache
