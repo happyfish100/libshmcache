@@ -68,8 +68,6 @@ int64_t shm_object_pool_alloc(struct shmcache_object_pool_context *op)
     op->obj_pool_info->queue.head = (op->obj_pool_info->queue.head + 1) %
         op->obj_pool_info->queue.capacity;
 
-    logDebug("function: %s, op: %p, head: %d, obj_offset: %"PRId64,
-            __FUNCTION__, op, op->obj_pool_info->queue.head, obj_offset);
     return obj_offset;
 }
 
@@ -84,9 +82,6 @@ int shm_object_pool_free(struct shmcache_object_pool_context *op,
     }
     op->offsets[op->obj_pool_info->queue.tail] = obj_offset;
     op->obj_pool_info->queue.tail = next_tail;
-
-    logDebug("function: %s, op: %p, tail: %d, obj_offset: %"PRId64,
-            __FUNCTION__, op, next_tail, obj_offset);
 
     return 0;
 }

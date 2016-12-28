@@ -99,7 +99,7 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     *ht_capacity = shm_ht_get_capacity(context->config.max_key_count + 1);
     total_size = sizeof(struct shm_memory_info);
 
-    logInfo("ht capacity: %d, sizeof(struct shm_memory_info): %d, "
+    logDebug("ht capacity: %d, sizeof(struct shm_memory_info): %d, "
             "context->config.max_key_count: %d, striping->count.max: %d",
             *ht_capacity, (int)sizeof(struct shm_memory_info),
             context->config.max_key_count, striping->count.max);
@@ -429,7 +429,7 @@ int shmcache_init(struct shmcache_context *context,
             lock_policy.detect_deadlock_interval_ms / context->config.
             lock_policy.trylock_interval_us;
     }
-    logInfo("file: "__FILE__", line: %d, "
+    logDebug("file: "__FILE__", line: %d, "
             "doing count: %d, done count: %d, hentry free count: %d, "
             "total entry count: %d", __LINE__,
             shm_object_pool_get_count(&context->value_allocator.doing),
@@ -483,7 +483,6 @@ int shmcache_init(struct shmcache_context *context,
         logInfo("hash table used bytes: %"PRId64, bytes);
     }
 
-    /*
     {
         unsigned int index;
         int k;
@@ -500,7 +499,6 @@ int shmcache_init(struct shmcache_context *context,
             }
         }
     }
-    */
 
 #endif
 
