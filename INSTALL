@@ -1,0 +1,22 @@
+Copy right 2016 Happy Fish / YuQing
+
+libshmcache may be copied only under the terms of the Less GNU General
+Public License(LGPL).
+Please visit the libshmcache Home Page for more detail.
+English language: https://github.com/happyfish100/libshmcache
+Chinese language: http://www.csource.org/
+
+
+#step 1. compile && install libfastcommon
+git clone https://github.com/happyfish100/libfastcommon
+cd libfastcommon && ./make.sh && ./make.sh install
+
+#step 2. compile && install libshmcache
+git clone https://github.com/happyfish100/libshmcache
+cd libshmcache/src && make && make install
+
+#step 3. compile && install libshmcache php extension
+cd php-shmcache
+phpize
+./configure
+make && make install
