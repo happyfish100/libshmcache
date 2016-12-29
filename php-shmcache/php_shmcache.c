@@ -15,10 +15,6 @@
 #include "serializer/shmcache_serializer.h"
 #include "php_shmcache.h"
 
-#define MAJOR_VERSION  1
-#define MINOR_VERSION  0
-#define PATCH_VERSION  0
-
 typedef struct
 {
 #if PHP_MAJOR_VERSION < 7
@@ -84,7 +80,7 @@ zend_module_entry shmcache_module_entry = {
 	NULL,//PHP_RINIT(shmcache),
 	NULL,//PHP_RSHUTDOWN(shmcache),
 	PHP_MINFO(shmcache),
-	"1.00",
+	"1.0.0",
 	STANDARD_MODULE_PROPERTIES
 };
 
@@ -474,6 +470,8 @@ PHP_MINIT_FUNCTION(shmcache)
 		php_shmcache_get_exception_base(0 TSRMLS_CC));
 #endif
 
+     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("MAX_KEY_SIZE"),
+             SHMCACHE_MAX_KEY_SIZE TSRMLS_CC);
      zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("NEVER_EXPIRED"),
              SHMCACHE_NEVER_EXPIRED TSRMLS_CC);
 
@@ -510,12 +508,13 @@ PHP_RSHUTDOWN_FUNCTION(shmcache)
 
 PHP_MINFO_FUNCTION(shmcache)
 {
-	char mc_info[64];
-	sprintf(mc_info, "shmcache v%d.%02d support", 
-		MAJOR_VERSION, MINOR_VERSION);
+	char info[64];
+	sprintf(info, "shmcache v%d.%d.%d support",
+		SHMCACHE_MAJOR_VERSION, SHMCACHE_MINOR_VERSION,
+        SHMCACHE_PATCH_VERSION);
 
 	php_info_print_table_start();
-	php_info_print_table_header(2, mc_info, "enabled");
+	php_info_print_table_header(2, info, "enabled");
 	php_info_print_table_end();
 }
 
@@ -529,7 +528,8 @@ ZEND_FUNCTION(shmcache_version)
 	int len;
 
 	len = sprintf(szVersion, "%d.%d.%d",
-		MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION);
+		SHMCACHE_MAJOR_VERSION, SHMCACHE_MINOR_VERSION,
+        SHMCACHE_PATCH_VERSION);
 
 	ZEND_RETURN_STRINGL(szVersion, len, 1);
 }

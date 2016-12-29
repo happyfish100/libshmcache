@@ -20,6 +20,10 @@
 #include "hash.h"
 #include "common_define.h"
 
+#define SHMCACHE_MAJOR_VERSION  1
+#define SHMCACHE_MINOR_VERSION  0
+#define SHMCACHE_PATCH_VERSION  0
+
 #define SHMCACHE_MAX_KEY_SIZE  64
 
 #define SHMCACHE_STATUS_INIT   0

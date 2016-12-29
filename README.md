@@ -38,6 +38,8 @@ utility commands in directory: src/tools, in /usr/bin/ after make && make instal
   * shmcache_remove_all: remove the share memory
   * shmcache_stats: show share memory statistics
 
+  * Note: the key size can not be longer than 64 bytes
+
 libshmcache PHP extension is supplied in the directory: php-shmcache, support PHP 5 and PHP 7
 
 ShmCache::__construct(string $config_filename[, long $serializer =
