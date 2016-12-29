@@ -92,10 +92,22 @@ zend_module_entry shmcache_module_entry = {
 	ZEND_GET_MODULE(shmcache)
 #endif
 
-static void php_shmcache_destroy(php_shmcache_t *i_obj)
+#if PHP_MAJOR_VERSION < 7
+static void php_shmcache_destroy(void *object TSRMLS_DC)
 {
+    php_shmcache_t *i_obj = (php_shmcache_t *)object;
+#else
+static void php_shmcache_destroy(zend_object *object)
+{
+    php_shmcache_t *i_obj = (php_shmcache_t *)((char*)(object) -
+            XtOffsetOf(php_shmcache_t, zo));
+#endif
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
+
+    logInfo("destroy %p", i_obj);
+#if PHP_MAJOR_VERSION < 7
 	efree(i_obj);
+#endif
 }
 
 #if PHP_MAJOR_VERSION < 7
@@ -109,7 +121,7 @@ zend_object_value php_shmcache_new(zend_class_entry *ce TSRMLS_DC)
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
 	retval.handle = zend_objects_store_put(i_obj,
 		(zend_objects_store_dtor_t)zend_objects_destroy_object,
-        NULL, NULL TSRMLS_CC);
+        php_shmcache_destroy, NULL TSRMLS_CC);
 	retval.handlers = zend_get_std_object_handlers();
 
 	return retval;
@@ -180,12 +192,14 @@ static PHP_METHOD(ShmCache, __construct)
 
 static PHP_METHOD(ShmCache, __destruct)
 {
+    /*
 	zval *object;
 	php_shmcache_t *i_obj;
 
     object = getThis();
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
 	php_shmcache_destroy(i_obj);
+    */
 }
 
 /* boolean ShmCache::set(string key, mixed value, long ttl)
@@ -461,7 +475,7 @@ PHP_MINIT_FUNCTION(shmcache)
 	memcpy(&shmcache_object_handlers, zend_get_std_object_handlers(),
             sizeof(zend_object_handlers));
 	shmcache_object_handlers.offset = XtOffsetOf(php_shmcache_t, zo);
-	shmcache_object_handlers.free_obj = NULL;
+	shmcache_object_handlers.free_obj = php_shmcache_destroy;
 	shmcache_object_handlers.clone_obj = NULL;
 #endif
 

@@ -32,7 +32,7 @@ other features are:
     memory recycle stats, lock stats etc.
 
 
-libshmcache PHP extension is supplied in diretory: php-shmcache, support PHP 5 and PHP 7
+libshmcache PHP extension is supplied in the directory: php-shmcache, support PHP 5 and PHP 7
 
 ShmCache::__construct(string $config_filename[, long $serializer =
         ShmCache::SERIALIZER_IGBINARY])
