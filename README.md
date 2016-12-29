@@ -31,6 +31,12 @@ other features are:
   * provide abundant stats info: counters for set, get and delete,
     memory recycle stats, lock stats etc.
 
+utility commands in directory: src/tools, in /usr/bin/ after make && make install
+  * shmcache_set: set a key
+  * shmcache_get: get a key
+  * shmcache_delete: delete a key
+  * shmcache_remove_all: remove the share memory
+  * shmcache_stats: show share memory statistics
 
 libshmcache PHP extension is supplied in the directory: php-shmcache, support PHP 5 and PHP 7
 
