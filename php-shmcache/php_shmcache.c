@@ -96,19 +96,17 @@ zend_module_entry shmcache_module_entry = {
 static void php_shmcache_destroy(void *object TSRMLS_DC)
 {
     php_shmcache_t *i_obj = (php_shmcache_t *)object;
+	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
+	efree(i_obj);
+}
 #else
 static void php_shmcache_destroy(zend_object *object)
 {
     php_shmcache_t *i_obj = (php_shmcache_t *)((char*)(object) -
             XtOffsetOf(php_shmcache_t, zo));
-#endif
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
-
-    logInfo("destroy %p", i_obj);
-#if PHP_MAJOR_VERSION < 7
-	efree(i_obj);
-#endif
 }
+#endif
 
 #if PHP_MAJOR_VERSION < 7
 zend_object_value php_shmcache_new(zend_class_entry *ce TSRMLS_DC)
@@ -188,18 +186,6 @@ static PHP_METHOD(ShmCache, __construct)
 		return;
     }
     i_obj->serializer = serializer;
-}
-
-static PHP_METHOD(ShmCache, __destruct)
-{
-    /*
-	zval *object;
-	php_shmcache_t *i_obj;
-
-    object = getThis();
-	i_obj = (php_shmcache_t *) shmcache_get_object(object);
-	php_shmcache_destroy(i_obj);
-    */
 }
 
 /* boolean ShmCache::set(string key, mixed value, long ttl)
@@ -434,9 +420,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, 0, 1)
 ZEND_ARG_INFO(0, config_filename)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo___destruct, 0, 0, 0)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_set, 0, 0, 3)
 ZEND_ARG_INFO(0, key)
 ZEND_ARG_INFO(0, value)
@@ -457,7 +440,6 @@ ZEND_END_ARG_INFO()
 #define SHMC_ME(name, args) PHP_ME(ShmCache, name, args, ZEND_ACC_PUBLIC)
 static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(__construct,  arginfo___construct)
-    SHMC_ME(__destruct,   arginfo___destruct)
     SHMC_ME(set,          arginfo_set)
     SHMC_ME(get,          arginfo_get)
     SHMC_ME(delete,       arginfo_delete)
