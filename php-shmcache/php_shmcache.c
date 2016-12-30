@@ -212,6 +212,14 @@ static PHP_METHOD(ShmCache, set)
 		RETURN_FALSE;
 	}
 
+    if (ZEND_IS_BOOL(val) && !ZEND_IS_TRUE(val)) {
+		logError("file: "__FILE__", line: %d, "
+			"can't set value to false!", __LINE__);
+        zend_throw_exception(shmcache_exception_ce,
+                "can't set value to false", 0 TSRMLS_CC);
+		RETURN_FALSE;
+    }
+
     key.data = key_str;
     key.length = key_len;
 
