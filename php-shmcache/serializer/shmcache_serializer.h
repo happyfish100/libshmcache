@@ -11,14 +11,10 @@
 
 #include "shmcache_types.h"
 
-#define SHMCACHE_SERIALIZER_NONE      0
-#define SHMCACHE_SERIALIZER_IGBINARY  1
-#define SHMCACHE_SERIALIZER_MSGPACK   2
-#define SHMCACHE_SERIALIZER_PHP       4
-
 struct shmcache_serialize_output {
     smart_str *buf;
     struct shmcache_value_info *value;
+    char tmp[32];   //temp buffer for number convert
 };
 
 typedef void (*php_msgpack_serialize_func)(smart_str *buf, zval *val);
@@ -57,26 +53,10 @@ extern int shmcache_serializers;
 
 static inline bool shmcache_serializer_enabled(const int serializer)
 {
-    if (serializer == SHMCACHE_SERIALIZER_NONE) {
+    if (serializer == SHMCACHE_SERIALIZER_STRING) {
         return true;
     }
     return (shmcache_serializers & serializer) != 0;
-}
-
-static inline const char *shmcache_get_serializer_label(const int serializer)
-{
-    switch (serializer) {
-        case SHMCACHE_SERIALIZER_NONE:
-            return "none";
-        case SHMCACHE_SERIALIZER_MSGPACK:
-            return "msgpack";
-        case SHMCACHE_SERIALIZER_IGBINARY:
-            return "igbinary";
-        case SHMCACHE_SERIALIZER_PHP:
-            return "php";
-        default:
-            return "Unkown";
-    }
 }
 
 int shmcache_load_functions();

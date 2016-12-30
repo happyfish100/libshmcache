@@ -239,6 +239,42 @@ static PHP_METHOD(ShmCache, set)
     RETURN_TRUE;
 }
 
+/* long ShmCache::incr(string key, long increment, long ttl)
+ * return the value after increase, false for fail
+ */
+static PHP_METHOD(ShmCache, incr)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_key_info key;
+    char *key_str;
+    zend_size_t key_len;
+    long increment;
+    long ttl;
+    int64_t new_value;
+    int result;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sll",
+			&key_str, &key_len, &increment, &ttl) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    key.data = key_str;
+    key.length = key_len;
+    result = shmcache_incr(i_obj->context, &key, increment, ttl, &new_value);
+    if (result != 0) {
+		RETURN_FALSE;
+    }
+
+    RETURN_LONG(new_value);
+}
+
 /* mixed ShmCache::get(string key)
  * return mixed for success, false for fail
  */
@@ -351,6 +387,10 @@ static PHP_METHOD(ShmCache, stats)
             sizeof("set.total"), stats.shm.hashtable.set.total);
     zend_add_assoc_long_ex(hashtable, "set.success",
             sizeof("set.success"), stats.shm.hashtable.set.success);
+    zend_add_assoc_long_ex(hashtable, "incr.total",
+            sizeof("incr.total"), stats.shm.hashtable.incr.total);
+    zend_add_assoc_long_ex(hashtable, "incr.success",
+            sizeof("incr.success"), stats.shm.hashtable.incr.success);
     zend_add_assoc_long_ex(hashtable, "get.total",
             sizeof("get.total"), stats.shm.hashtable.get.total);
     zend_add_assoc_long_ex(hashtable, "get.success",
@@ -430,6 +470,12 @@ ZEND_ARG_INFO(0, value)
 ZEND_ARG_INFO(0, ttl)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_incr, 0, 0, 3)
+ZEND_ARG_INFO(0, key)
+ZEND_ARG_INFO(0, increment)
+ZEND_ARG_INFO(0, ttl)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_get, 0, 0, 1)
 ZEND_ARG_INFO(0, key)
 ZEND_END_ARG_INFO()
@@ -445,6 +491,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(__construct,  arginfo___construct)
     SHMC_ME(set,          arginfo_set)
+    SHMC_ME(incr,         arginfo_incr)
     SHMC_ME(get,          arginfo_get)
     SHMC_ME(delete,       arginfo_delete)
     SHMC_ME(stats,        arginfo_stats)

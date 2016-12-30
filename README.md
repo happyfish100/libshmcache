@@ -30,6 +30,7 @@ other features are:
     by config parameter: segment_size
   * provide abundant stats info: counters for set, get and delete,
     memory recycle stats, lock stats etc.
+  * support atomic increment
 
 utility commands in directory: src/tools, in /usr/bin/ after make && make install
   * shmcache_set: set a key
@@ -67,7 +68,15 @@ boolean ShmCache::set(string $key, mixed $value, long $ttl)
   * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
     ShmCache::NEVER_EXPIRED for never expired
   * @return true for success, false for fail
+  * @throws ShmCacheException if $value is false
   * @example: $cache->set($key, $value, 300);
+
+long ShmCache::incr(string $key, long $increment, long $ttl)
+  * @desc: atomic increment
+  * @param key: the key, must be a string variable
+  * @param increment: the increment integer, can be negative, such as -1
+  * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
+  * @return the value after increase, false for fail
 
 mixed ShmCache::get(string $key)
   * @param key: the key, must be a string variable

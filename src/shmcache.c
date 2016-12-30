@@ -220,6 +220,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         if ((result=shmopt_create_value_segment(context)) != 0) {
             break;
         }
+        context->memory->size = sizeof(struct shm_memory_info);
         context->memory->max_key_count = context->config.max_key_count;
         context->memory->status = SHMCACHE_STATUS_NORMAL;
 
@@ -335,6 +336,16 @@ static int shmcache_check(struct shmcache_context *context,
         struct shm_value_size_info *striping)
 {
     int result;
+
+    if (context->memory->size != (int)sizeof(struct shm_memory_info)) {
+        logError("file: "__FILE__", line: %d, "
+                "share memory is invalid because size: %d != "
+                "sizeof(struct shm_memory_info): %d",
+                __LINE__, context->memory->size,
+                (int)sizeof(struct shm_memory_info));
+        return EINVAL;
+    }
+
     if (context->memory->status != SHMCACHE_STATUS_NORMAL) {
         logError("file: "__FILE__", line: %d, "
                 "share memory is invalid because status: 0x%08x != 0x%08x",
@@ -742,6 +753,63 @@ int shmcache_delete(struct shmcache_context *context,
     return result;
 }
 
+int shmcache_incr(struct shmcache_context *context,
+        const struct shmcache_key_info *key,
+        const int64_t increment,
+        const int ttl, int64_t *new_value)
+{
+    int result;
+    struct shmcache_value_info value;
+    char *endptr;
+    char buff[20];
+
+    if ((result=shm_lock(context)) != 0) {
+        return result;
+    }
+
+    do {
+        result = shm_ht_get(context, key, &value);
+        if (result == 0) {
+            if (value.length >= sizeof(buff)) {
+                logError("file: "__FILE__", line: %d, "
+                        "key: %.*s, value length: %d exceeds %d",
+                        __LINE__, key->length, key->data,
+                        value.length, (int)sizeof(buff));
+                result = EINVAL;
+                break;
+            }
+            memcpy(buff, value.data, value.length);
+            buff[value.length] = '\0';
+            endptr = NULL;
+            *new_value = strtoll(buff, &endptr, 10);
+            if (endptr != NULL && *endptr != '\0') {
+                logError("file: "__FILE__", line: %d, "
+                        "key: %.*s, value length: %d, "
+                        "value: %s is not a valid integer",
+                        __LINE__, key->length, key->data,
+                        value.length, buff);
+                result = EINVAL;
+                break;
+            }
+            *new_value += increment;
+        } else {
+            *new_value = increment;
+        }
+
+        value.data = buff;
+        value.length = sprintf(value.data, "%"PRId64, *new_value);
+        value.options = SHMCACHE_SERIALIZER_INTEGER;
+        result = shm_ht_set(context, key, &value, ttl);
+    } while (0);
+
+    context->memory->stats.hashtable.incr.total++;
+    if (result == 0) {
+        context->memory->stats.hashtable.incr.success++;
+    }
+    shm_unlock(context);
+    return result;
+}
+
 int shmcache_remove_all(struct shmcache_context *context)
 {
     int result;
@@ -771,4 +839,24 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
 void shmcache_clear_stats(struct shmcache_context *context)
 {
     memset(&context->memory->stats, 0, sizeof(context->memory->stats));
+}
+
+const char *shmcache_get_serializer_label(const int serializer)
+{
+    switch (serializer) {
+        case SHMCACHE_SERIALIZER_STRING:
+            return "string";
+        case SHMCACHE_SERIALIZER_INTEGER:
+            return "integer";
+        case SHMCACHE_SERIALIZER_NONE:
+            return "none";
+        case SHMCACHE_SERIALIZER_MSGPACK:
+            return "msgpack";
+        case SHMCACHE_SERIALIZER_IGBINARY:
+            return "igbinary";
+        case SHMCACHE_SERIALIZER_PHP:
+            return "php";
+        default:
+            return "unkown";
+    }
 }

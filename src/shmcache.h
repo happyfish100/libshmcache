@@ -94,6 +94,21 @@ int shmcache_set(struct shmcache_context *context,
         const struct shmcache_value_info *value, const int ttl);
 
 /**
+increase integer value
+parameters:
+	context: the context pointer
+    key: the key
+    incr: the incremental number
+    ttl: the time to live in seconds
+    value: return the new value
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_incr(struct shmcache_context *context,
+        const struct shmcache_key_info *key,
+        const int64_t increment,
+        const int ttl, int64_t *new_value);
+
+/**
 get value
 parameters:
 	context: the context pointer
@@ -140,6 +155,8 @@ parameters:
 return none
 */
 void shmcache_clear_stats(struct shmcache_context *context);
+
+const char *shmcache_get_serializer_label(const int serializer);
 
 #ifdef __cplusplus
 }

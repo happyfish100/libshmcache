@@ -7,7 +7,8 @@ php_msgpack_unserialize_func msgpack_unserialize_func = NULL;
 igbinary_serialize_func igbinary_pack_func = NULL;
 igbinary_unserialize_func igbinary_unpack_func = NULL;
 
-int shmcache_serializers = SHMCACHE_SERIALIZER_PHP;
+int shmcache_serializers = SHMCACHE_SERIALIZER_STRING |
+        SHMCACHE_SERIALIZER_INTEGER | SHMCACHE_SERIALIZER_PHP;
 
 extern int shmcache_php_pack(zval *pzval, smart_str *buf);
 extern int shmcache_php_unpack(char *content, size_t len, zval *rv);
@@ -53,6 +54,22 @@ int shmcache_serialize(zval *pzval,
 {
     int result;
     int serializer;
+
+    switch (ZEND_TYPE_OF(pzval)) {
+        case IS_STRING:
+            output->value->options = SHMCACHE_SERIALIZER_STRING;
+            output->value->data = Z_STRVAL_P(pzval);
+            output->value->length = Z_STRLEN_P(pzval);
+            return 0;
+        case IS_LONG:
+            output->value->options = SHMCACHE_SERIALIZER_INTEGER;
+            output->value->data = output->tmp;
+            output->value->length = sprintf(output->tmp, "%"PRId64,
+                    (int64_t)Z_LVAL_P(pzval));
+            return 0;
+        default:
+            break;
+    }
 
     serializer = output->value->options;
     switch (serializer) {
@@ -120,9 +137,23 @@ void shmcache_free_serialize_output(struct shmcache_serialize_output *output)
 
 int shmcache_unserialize(struct shmcache_value_info *value, zval *rv)
 {
+    char buff[20];
+    int len;
+
     switch (value->options) {
         case SHMCACHE_SERIALIZER_NONE:
+        case SHMCACHE_SERIALIZER_STRING:
             ZEND_ZVAL_STRINGL(rv, value->data, value->length, 1);
+            return 0;
+        case SHMCACHE_SERIALIZER_INTEGER:
+            if (value->length < (int)sizeof(buff)) {
+                len = value->length;
+            } else {
+                len = sizeof(buff) - 1;
+            }
+            memcpy(buff, value->data, len);
+            buff[len] = '\0';
+            ZVAL_LONG(rv, strtoll(buff, NULL, 10));
             return 0;
         case SHMCACHE_SERIALIZER_IGBINARY:
             return shmcache_igbinary_unpack(value->data, value->length, rv);

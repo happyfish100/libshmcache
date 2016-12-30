@@ -77,17 +77,21 @@ static void stats_output(struct shmcache_context *context)
     printf("max_key_count: %d\n"
             "current_key_count: %d\n"
             "segment_size: %.03f MB\n\n"
-            "set_total_count: %"PRId64"\n"
-            "set_success_count: %"PRId64"\n"
-            "get_total_count: %"PRId64"\n"
-            "get_success_count: %"PRId64"\n"
-            "del_total_count: %"PRId64"\n"
-            "del_success_count: %"PRId64"\n\n",
+            "set.total_count: %"PRId64"\n"
+            "set.success_count: %"PRId64"\n"
+            "incr.total_count: %"PRId64"\n"
+            "incr.success_count: %"PRId64"\n"
+            "get.total_count: %"PRId64"\n"
+            "get.success_count: %"PRId64"\n"
+            "del.total_count: %"PRId64"\n"
+            "del.success_count: %"PRId64"\n\n",
             stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
             stats.shm.hashtable.set.total,
             stats.shm.hashtable.set.success,
+            stats.shm.hashtable.incr.total,
+            stats.shm.hashtable.incr.success,
             stats.shm.hashtable.get.total,
             stats.shm.hashtable.get.success,
             stats.shm.hashtable.del.total,

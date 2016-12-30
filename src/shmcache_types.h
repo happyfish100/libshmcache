@@ -34,6 +34,13 @@
 
 #define SHMCACHE_NEVER_EXPIRED  0
 
+#define SHMCACHE_SERIALIZER_STRING    0   //string type
+#define SHMCACHE_SERIALIZER_INTEGER   1   //integer type
+#define SHMCACHE_SERIALIZER_NONE      0x100
+#define SHMCACHE_SERIALIZER_IGBINARY  0x200
+#define SHMCACHE_SERIALIZER_MSGPACK   0x400
+#define SHMCACHE_SERIALIZER_PHP       0x800
+
 #define SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING  0
 #define SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE   1
 
@@ -184,6 +191,7 @@ struct shm_stats {
         struct shm_counter set;
         struct shm_counter get;
         struct shm_counter del;
+        struct shm_counter incr;
     } hashtable;
 
     struct {
@@ -210,6 +218,7 @@ struct shm_stats {
 };
 
 struct shm_memory_info {
+    int size;    //sizeof(struct shm_memory_info)
     int status;
     int max_key_count;
     struct shm_lock lock;
