@@ -36,9 +36,6 @@ void shm_ht_init(struct shmcache_context *context, const int capacity)
 #define HT_VALUE_EQUALS(hvalue, hv_len, pvalue) (hv_len == pvalue->length \
         && memcmp(hvalue, pvalue->data, pvalue->length) == 0)
 
-#define HT_CALC_EXPIRES(current_time, ttl) \
-    (ttl == SHMCACHE_NEVER_EXPIRED ? 0 : current_time + ttl)
-
 static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
         const struct shm_value *value)
 {
@@ -53,7 +50,7 @@ static inline char *shm_ht_get_value_ptr(struct shmcache_context *context,
 
 int shm_ht_set(struct shmcache_context *context,
         const struct shmcache_key_info *key,
-        const struct shmcache_value_info *value, const int ttl)
+        const struct shmcache_value_info *value)
 {
     int result;
     unsigned int index;
@@ -135,7 +132,7 @@ int shm_ht_set(struct shmcache_context *context,
     new_value.options = value->options;
 
     entry->value = new_value;
-    entry->expires = HT_CALC_EXPIRES(g_current_time, ttl);
+    entry->expires = value->expires;
     if (found) {
         shm_value_allocator_free(context, &old_value, &recycled);
         shm_list_move_tail(&context->list, entry_offset);
@@ -170,10 +167,11 @@ int shm_ht_get(struct shmcache_context *context,
     while (entry_offset > 0) {
         entry = HT_ENTRY_PTR(context, entry_offset);
         if (HT_KEY_EQUALS(entry, key)) {
+            value->data = shm_ht_get_value_ptr(context, &entry->value);
+            value->length = entry->value.length;
+            value->options = entry->value.options;
+            value->expires = entry->expires;
             if (HT_ENTRY_IS_VALID(entry, get_current_time())) {
-                value->data = shm_ht_get_value_ptr(context, &entry->value);
-                value->length = entry->value.length;
-                value->options = entry->value.options;
                 return 0;
             } else {
                 return ETIMEDOUT;

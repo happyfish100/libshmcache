@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
     char *config_filename;
     struct shmcache_context context;
     struct shmcache_key_info key;
-    struct shmcache_value_info value;
+    char *value;
+    int value_len;
     int ttl;
 
     if (argc >= 2 && (strcmp(argv[1], "-h") == 0 ||
@@ -53,11 +54,10 @@ int main(int argc, char *argv[])
 
     key.data = argv[index++];
     key.length = strlen(key.data);
-    value.data = argv[index++];
-    value.length = strlen(value.data);
-    value.options = 0;
+    value = argv[index++];
+    value_len = strlen(value);
     ttl = atoi(argv[index++]);
-    result = shmcache_set(&context, &key, &value, ttl);
+    result = shmcache_set(&context, &key, value, value_len, ttl);
     if (result == 0) {
         printf("set key: %s success.\n", key.data);
     } else {

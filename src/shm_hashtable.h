@@ -25,6 +25,9 @@
 #define HT_ENTRY_PTR(context, entry_offset) ((struct shm_hash_entry *) \
     (context->segments.hashtable.base + entry_offset))
 
+#define HT_CALC_EXPIRES(current_time, ttl) \
+    (ttl == SHMCACHE_NEVER_EXPIRED ? 0 : current_time + ttl)
+
 #define HT_ENTRY_IS_VALID(entry, current_time) \
     (entry->expires == 0 || entry->expires >= current_time)
 
@@ -59,13 +62,12 @@ set value
 parameters:
 	context: the context pointer
     key: the key
-    value: the value
-    ttl: the time to live in seconds
+    value: the value, include expires field
 return error no, 0 for success, != 0 for fail
 */
 int shm_ht_set(struct shmcache_context *context,
         const struct shmcache_key_info *key,
-        const struct shmcache_value_info *value, const int ttl);
+        const struct shmcache_value_info *value);
 
 /**
 get value

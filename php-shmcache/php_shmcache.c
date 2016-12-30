@@ -224,13 +224,14 @@ static PHP_METHOD(ShmCache, set)
     key.length = key_len;
 
     value.options = i_obj->serializer;
+    value.expires = HT_CALC_EXPIRES(time(NULL), ttl);
     output.buf = &buf;
     output.value = &value;
     if (shmcache_serialize(val, &output) != 0) {
 		RETURN_FALSE;
     }
 
-    result = shmcache_set(i_obj->context, &key, &value, ttl);
+    result = shmcache_set_ex(i_obj->context, &key, &value);
     shmcache_free_serialize_output(&output);
     if (result != 0) {
 		RETURN_FALSE;
@@ -275,7 +276,7 @@ static PHP_METHOD(ShmCache, incr)
     RETURN_LONG(new_value);
 }
 
-/* mixed ShmCache::get(string key)
+/* mixed ShmCache::get(string key[, boolean returnExpired = false])
  * return mixed for success, false for fail
  */
 static PHP_METHOD(ShmCache, get)
@@ -286,12 +287,15 @@ static PHP_METHOD(ShmCache, get)
     struct shmcache_value_info value;
     char *key_str;
     zend_size_t key_len;
+    zend_bool returnExpired;
+    int result;
 
     object = getThis();
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
-			&key_str, &key_len) == FAILURE)
+    returnExpired = false;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b",
+			&key_str, &key_len, &returnExpired) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"zend_parse_parameters fail!", __LINE__);
@@ -300,8 +304,10 @@ static PHP_METHOD(ShmCache, get)
 
     key.data = key_str;
     key.length = key_len;
-    if (shmcache_get(i_obj->context, &key, &value) != 0) {
-		RETURN_FALSE;
+    if ((result=shmcache_get(i_obj->context, &key, &value)) != 0) {
+        if (!(returnExpired && result == ETIMEDOUT)) {
+            RETURN_FALSE;
+        }
     }
 
     if (!shmcache_serializer_enabled(value.options)) {
@@ -321,6 +327,42 @@ static PHP_METHOD(ShmCache, get)
     if (return_value == NULL) {
 		RETURN_FALSE;
     }
+}
+
+/* long ShmCache::getExpires(string key[, boolean returnExpired = false])
+ * return expires timestamp, 0 for never expire, false for not exist
+ */
+static PHP_METHOD(ShmCache, getExpires)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_key_info key;
+    struct shmcache_value_info value;
+    char *key_str;
+    zend_size_t key_len;
+    zend_bool returnExpired;
+    int result;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+    returnExpired = false;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b",
+			&key_str, &key_len) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    key.data = key_str;
+    key.length = key_len;
+    if ((result=shmcache_get(i_obj->context, &key, &value)) != 0) {
+        if (!(returnExpired && result == ETIMEDOUT)) {
+            RETURN_FALSE;
+        }
+    }
+    RETURN_LONG(value.expires);
 }
 
 /* boolean ShmCache::delete(string key)
@@ -478,6 +520,12 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_get, 0, 0, 1)
 ZEND_ARG_INFO(0, key)
+ZEND_ARG_INFO(0, returnExpired)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_getExpires, 0, 0, 1)
+ZEND_ARG_INFO(0, key)
+ZEND_ARG_INFO(0, returnExpired)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_delete, 0, 0, 1)
@@ -493,6 +541,7 @@ static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(set,          arginfo_set)
     SHMC_ME(incr,         arginfo_incr)
     SHMC_ME(get,          arginfo_get)
+    SHMC_ME(getExpires,   arginfo_getExpires)
     SHMC_ME(delete,       arginfo_delete)
     SHMC_ME(stats,        arginfo_stats)
     { NULL, NULL, NULL }

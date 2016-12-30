@@ -242,6 +242,7 @@ struct shmcache_value_info {
     char *data;
     int length;
     int options;    //options for application
+    time_t expires; //expire time
 };
 
 struct shmcache_segment_info {

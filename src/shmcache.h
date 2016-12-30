@@ -19,6 +19,7 @@
 #include <sys/shm.h>
 #include "common_define.h"
 #include "shmcache_types.h"
+#include "shm_hashtable.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,13 +86,26 @@ set value
 parameters:
 	context: the context pointer
     key: the key
-    value: the value
+    value: the value, include expire filed
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_set_ex(struct shmcache_context *context,
+        const struct shmcache_key_info *key,
+        const struct shmcache_value_info *value);
+
+/**
+set value
+parameters:
+	context: the context pointer
+    key: the key
+    data: the value string ptr
+    data_len: the value length
     ttl: the time to live in seconds
 return error no, 0 for success, != 0 for fail
 */
 int shmcache_set(struct shmcache_context *context,
         const struct shmcache_key_info *key,
-        const struct shmcache_value_info *value, const int ttl);
+        const char *data, const int data_len, const int ttl);
 
 /**
 increase integer value

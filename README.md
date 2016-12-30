@@ -78,10 +78,17 @@ long ShmCache::incr(string $key, long $increment, long $ttl)
   * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
   * @return the value after increase, false for fail
 
-mixed ShmCache::get(string $key)
+mixed ShmCache::get(string $key[, boolean returnExpired = false])
   * @param key: the key, must be a string variable
+  * @param returnExpired: if return expired key / value
   * @return mixed value for success, false for key not exist or expired
   * @example: $value = $cache->get($key);
+
+long ShmCache::getExpires(string $key[, boolean returnExpired = false])
+  * @param key: the key, must be a string variable
+  * @param returnExpired: if return expired key / value
+  * @return expires timestamp, 0 for never expired, false for not exist
+  * @example: $value = $cache->getExpires($key);
 
 boolean ShmCache::delete(string $key)
   * @param key: the key, must be a string variable

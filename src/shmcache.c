@@ -10,7 +10,7 @@
 #include "logger.h"
 #include "shared_func.h"
 #include "ini_file_reader.h"
-#include "shm_hashtable.h"
+#include "sched_thread.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
 #include "shm_op_wrapper.h"
@@ -705,9 +705,9 @@ void shmcache_destroy(struct shmcache_context *context)
 {
 }
 
-int shmcache_set(struct shmcache_context *context,
+int shmcache_set_ex(struct shmcache_context *context,
         const struct shmcache_key_info *key,
-        const struct shmcache_value_info *value, const int ttl)
+        const struct shmcache_value_info *value)
 {
     int result;
 
@@ -715,12 +715,24 @@ int shmcache_set(struct shmcache_context *context,
         return result;
     }
     context->memory->stats.hashtable.set.total++;
-    result = shm_ht_set(context, key, value, ttl);
+    result = shm_ht_set(context, key, value);
     if (result == 0) {
         context->memory->stats.hashtable.set.success++;
     }
     shm_unlock(context);
     return result;
+}
+
+int shmcache_set(struct shmcache_context *context,
+        const struct shmcache_key_info *key,
+        const char *data, const int data_len, const int ttl)
+{
+    struct shmcache_value_info value;
+    value.options = SHMCACHE_SERIALIZER_STRING;
+    value.data = (char *)data;
+    value.length = data_len;
+    value.expires = HT_CALC_EXPIRES(get_current_time(), ttl);
+    return shmcache_set_ex(context, key, &value);
 }
 
 int shmcache_get(struct shmcache_context *context,
@@ -761,7 +773,7 @@ int shmcache_incr(struct shmcache_context *context,
     int result;
     struct shmcache_value_info value;
     char *endptr;
-    char buff[20];
+    char buff[24];
 
     if ((result=shm_lock(context)) != 0) {
         return result;
@@ -796,10 +808,11 @@ int shmcache_incr(struct shmcache_context *context,
             *new_value = increment;
         }
 
+        value.options = SHMCACHE_SERIALIZER_INTEGER;
         value.data = buff;
         value.length = sprintf(value.data, "%"PRId64, *new_value);
-        value.options = SHMCACHE_SERIALIZER_INTEGER;
-        result = shm_ht_set(context, key, &value, ttl);
+        value.expires = HT_CALC_EXPIRES(get_current_time(), ttl);
+        result = shm_ht_set(context, key, &value);
     } while (0);
 
     context->memory->stats.hashtable.incr.total++;
