@@ -80,8 +80,8 @@ int shmopt_create_value_segment(struct shmcache_context *context)
 
     logInfo("file: "__FILE__", line: %d, "
             "striping_count: %d, striping.count.current: %d, "
-            "context->memory->vm_info.segment.size: %ld, "
-            "context->memory->vm_info.striping.size: %ld",
+            "context->memory->vm_info.segment.size: %"PRId64", "
+            "context->memory->vm_info.striping.size: %"PRId64,
             __LINE__, striping_count, context->memory->vm_info.striping.count.current,
             context->memory->vm_info.segment.size, context->memory->vm_info.striping.size);
 

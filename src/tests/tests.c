@@ -19,9 +19,9 @@ int main(int argc, char *argv[])
 	int result;
     struct shmcache_context context;
     struct shmcache_key_info key;
-    struct shmcache_value_info value;
     char szKey[SHMCACHE_MAX_KEY_SIZE];
     char szValue[MAX_VALUE_SIZE];
+    int value_len;
     int ttl = 600;
     int i;
 	
@@ -40,12 +40,10 @@ int main(int argc, char *argv[])
     srand(time(NULL));
     memset(szValue, 'A', sizeof(szValue));
     key.data = szKey;
-    value.data = szValue;
-    value.options = 0;
     for (i=0; i<10000; i++) {
         key.length = sprintf(key.data, "key_%04d", i + 1);
-        value.length = (MAX_VALUE_SIZE * (int64_t)rand()) / (int64_t)RAND_MAX;
-        result = shmcache_set(&context, &key, &value, ttl);
+        value_len = (MAX_VALUE_SIZE * (int64_t)rand()) / (int64_t)RAND_MAX;
+        result = shmcache_set(&context, &key, szValue, value_len, ttl);
         if (result != 0) {
             printf("%d. set fail, errno: %d\n", i + 1, result);
             break;
