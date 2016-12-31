@@ -8,7 +8,9 @@ igbinary_serialize_func igbinary_pack_func = NULL;
 igbinary_unserialize_func igbinary_unpack_func = NULL;
 
 int shmcache_serializers = SHMCACHE_SERIALIZER_STRING |
-        SHMCACHE_SERIALIZER_INTEGER | SHMCACHE_SERIALIZER_PHP;
+        SHMCACHE_SERIALIZER_INTEGER |
+        SHMCACHE_SERIALIZER_NONE |
+        SHMCACHE_SERIALIZER_PHP;
 
 extern int shmcache_php_pack(zval *pzval, smart_str *buf);
 extern int shmcache_php_unpack(char *content, size_t len, zval *rv);

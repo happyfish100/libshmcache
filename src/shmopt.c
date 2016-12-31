@@ -12,12 +12,13 @@ int shmopt_init_segment(struct shmcache_context *context,
         struct shmcache_segment_info *segment,
         const int proj_id, const int64_t size)
 {
+    int result;
     segment->proj_id = proj_id;
     segment->base = shm_mmap(context->config.type,
             context->config.filename, proj_id, size, &segment->key,
-            context->create_segment);
+            context->create_segment, &result);
     if (segment->base == NULL) {
-        return ENOMEM;
+        return result;
     }
 
     segment->size = size;

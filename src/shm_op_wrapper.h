@@ -31,11 +31,12 @@ parameters:
     size: the share memory size
     key: return the key
     create_segment: if create segment when segment not exist
+    err_no: return errno
 return share memory pointer, NULL for fail
 */
 void *shm_mmap(const int type, const char *filename,
         const int proj_id, const int64_t size, key_t *key,
-        const bool create_segment);
+        const bool create_segment, int *err_no);
 
 /**
 munmap or shmdt

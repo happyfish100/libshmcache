@@ -2,9 +2,9 @@
 
 $key = 'key_0001';
 $value = array('name' => 'yuqing', 'score' => 90.5, 'city' => 'beijing', 'gender' => 'male');
-//$value = json_encode($value, JSON_PRETTY_PRINT);
+$value = json_encode($value, JSON_PRETTY_PRINT);
 
-$cache = new ShmCache('/etc/libshmcache.conf', ShmCache::SERIALIZER_IGBINARY);
+$cache = new ShmCache('../conf/libshmcache.conf', ShmCache::SERIALIZER_NONE);
 $cache->set($key, $value, 300);
 for ($i=0; $i<1024; $i++) {
     //$cache->set($key, $value, 300);

@@ -16,7 +16,7 @@
             filename, proj_id - 1)
 
 static void *shm_do_mmap(const char *filename, int proj_id,
-        const int64_t size, const bool create_segment)
+        const int64_t size, const bool create_segment, int *err_no)
 {
     char true_filename[MAX_PATH_SIZE];
     void *addr;
@@ -29,10 +29,11 @@ static void *shm_do_mmap(const char *filename, int proj_id,
     if (fd >= 0) {
         struct stat st;
         if (fstat(fd, &st) != 0) {
+            *err_no = errno != 0 ? errno : EPERM;
             logError("file: "__FILE__", line: %d, "
                     "stat file: %s fail, "
                     "errno: %d, error info: %s", __LINE__,
-                    true_filename, errno, strerror(errno));
+                    true_filename, *err_no, strerror(*err_no));
             return NULL;
         }
         if (st.st_size > size) {
@@ -51,10 +52,11 @@ static void *shm_do_mmap(const char *filename, int proj_id,
         }
     } else {
         if (!(create_segment && errno == ENOENT)) {
+            *err_no = errno != 0 ? errno : EPERM;
             logError("file: "__FILE__", line: %d, "
                     "open file: %s fail, "
                     "errno: %d, error info: %s", __LINE__,
-                    true_filename, errno, strerror(errno));
+                    true_filename, *err_no, strerror(*err_no));
             return NULL;
         }
 
@@ -63,38 +65,42 @@ static void *shm_do_mmap(const char *filename, int proj_id,
         umask(old_mast);
 
         if (fd < 0) {
+            *err_no = errno != 0 ? errno : EPERM;
             logError("file: "__FILE__", line: %d, "
                     "open file: %s fail, "
                     "errno: %d, error info: %s", __LINE__,
-                    true_filename, errno, strerror(errno));
+                    true_filename, *err_no, strerror(*err_no));
             return NULL;
         }
         need_truncate = true;
     }
     if (need_truncate) {
         if (ftruncate(fd, size) != 0) {
+            *err_no = errno != 0 ? errno : EPERM;
             close(fd);
             logError("file: "__FILE__", line: %d, "
                     "truncate file: %s to size %"PRId64" fail, "
                     "errno: %d, error info: %s", __LINE__,
-                    true_filename, size, errno, strerror(errno));
+                    true_filename, size, *err_no, strerror(*err_no));
             return NULL;
         }
     }
 
     addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (addr == NULL) {
+        *err_no = errno != 0 ? errno : EPERM;
         logError("file: "__FILE__", line: %d, "
                 "mmap file: %s with size: %"PRId64" fail, "
                 "errno: %d, error info: %s", __LINE__,
-                true_filename, size, errno, strerror(errno));
+                true_filename, size, *err_no, strerror(*err_no));
     }
     close(fd);
+    *err_no = 0;
     return addr;
 }
 
 void *shm_do_shmmap(const key_t key, const int64_t size,
-        const bool create_segment)
+        const bool create_segment, int *err_no)
 {
     int shmid;
     void *addr;
@@ -105,21 +111,24 @@ void *shm_do_shmmap(const key_t key, const int64_t size,
         shmid = shmget(key, 0, 0666);
     }
     if (shmid < 0) {
+        *err_no = errno != 0 ? errno : EPERM;
         logError("file: "__FILE__", line: %d, "
                 "shmget with key %08x fail, "
                 "errno: %d, error info: %s", __LINE__,
-                key, errno, strerror(errno));
+                key, *err_no, strerror(*err_no));
         return NULL;
     }
 
     addr = shmat(shmid, NULL, 0);
     if (addr == NULL || addr == (void *)-1) {
+        *err_no = errno != 0 ? errno : EPERM;
         logError("file: "__FILE__", line: %d, "
                 "shmat with key %08x fail, "
                 "errno: %d, error info: %s", __LINE__,
-                key, errno, strerror(errno));
+                key, *err_no, strerror(*err_no));
         return NULL;
     }
+    *err_no = 0;
     return addr;
 }
 
@@ -165,15 +174,15 @@ static int shm_get_key(const char *filename, const int proj_id,
 
 void *shm_mmap(const int type, const char *filename,
         const int proj_id, const int64_t size, key_t *key,
-        const bool create_segment)
+        const bool create_segment, int *err_no)
 {
-    if (shm_get_key(filename, proj_id, key) != 0) {
+    if ((*err_no=shm_get_key(filename, proj_id, key)) != 0) {
         return NULL;
     }
     if (type == SHMCACHE_TYPE_MMAP) {
-        return shm_do_mmap(filename, proj_id, size, create_segment);
+        return shm_do_mmap(filename, proj_id, size, create_segment, err_no);
     } else {
-        return shm_do_shmmap(*key, size, create_segment);
+        return shm_do_shmmap(*key, size, create_segment, err_no);
     }
 }
 
