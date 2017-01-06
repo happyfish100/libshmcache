@@ -84,7 +84,7 @@ static int shm_value_allocator_do_recycle(struct shmcache_context *context,
 }
 
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_counter *recycle_counter, const int recycle_key_once)
+        struct shm_recycle_counter *recycle_counter, const int recycle_keys_once)
 {
     int64_t entry_offset;
     struct shm_hash_entry *entry;
@@ -107,14 +107,14 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
         key.length = entry->key_len;
         valid = HT_ENTRY_IS_VALID(entry, g_current_time);
         if (shm_ht_delete_ex(context, &key, &recycled) != 0) {
-            logCrit("file: "__FILE__", line: %d, "
+            logError("file: "__FILE__", line: %d, "
                     "shm_ht_delete fail, index: %d, "
                     "entry offset: %"PRId64", "
                     "key: %.*s, key length: %d", __LINE__,
                     index, entry_offset, entry->key_len,
                     entry->key, entry->key_len);
-            result = EFAULT;
-            break;
+
+            shm_ht_free_entry(context, entry, entry_offset, &recycled);
         }
 
         clear_count++;
@@ -122,8 +122,8 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
             valid_count++;
         }
 
-        if (recycle_key_once > 0) {
-            if (clear_count >= recycle_key_once) {
+        if (recycle_keys_once > 0) {
+            if (clear_count >= recycle_keys_once) {
                 result = 0;
                 break;
             }

@@ -106,6 +106,19 @@ static inline int shm_ht_delete(struct shmcache_context *context,
     return shm_ht_delete_ex(context, key, &recycled);
 }
 
+/**
+free hashtable entry
+parameters:
+	context: the context pointer
+    entry: the hashtable entry
+    entry_offset: the entry offset
+    recycled: if recycled
+return none
+*/
+void shm_ht_free_entry(struct shmcache_context *context,
+        struct shm_hash_entry *entry, const int64_t entry_offset,
+        bool *recycled);
+
 static inline int shm_ht_count(struct shmcache_context *context)
 {
     return context->memory->hashtable.count;
