@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include "logger.h"
 #include "shared_func.h"
+#include "sched_thread.h"
+#include "shm_hashtable.h"
 #include "shm_lock.h"
 
 int shm_lock_init(struct shmcache_context *context)
@@ -103,6 +105,10 @@ static int shm_detect_deadlock(struct shmcache_context *context,
 
     if (last_pid == context->memory->lock.pid) {
         context->memory->lock.pid = 0;
+        shm_ht_clear(context);
+        if (context->config.va_policy.sleep_us_when_recycle_valid_entries > 0) {
+            usleep(context->config.va_policy.sleep_us_when_recycle_valid_entries);
+        }
         if ((result=pthread_mutex_unlock(&context->memory->lock.mutex)) != 0) {
             logError("file: "__FILE__", line: %d, "
                     "call pthread_mutex_unlock fail, "

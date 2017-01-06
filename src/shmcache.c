@@ -217,6 +217,9 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         }
 
         context->memory->usage.alloced = context->segments.hashtable.size;
+        context->memory->usage.used = context->segments.hashtable.size -
+            shm_object_pool_get_object_memory_size(sizeof(struct shm_hash_entry),
+                    context->config.max_key_count);
         if ((result=shmopt_create_value_segment(context)) != 0) {
             break;
         }
@@ -872,4 +875,20 @@ const char *shmcache_get_serializer_label(const int serializer)
         default:
             return "unkown";
     }
+}
+
+int shmcache_clear(struct shmcache_context *context)
+{
+    int result;
+
+    if ((result=shm_lock(context)) != 0) {
+        return result;
+    }
+
+    shm_ht_clear(context);
+    if (context->config.va_policy.sleep_us_when_recycle_valid_entries > 0) {
+        usleep(context->config.va_policy.sleep_us_when_recycle_valid_entries);
+    }
+    shm_unlock(context);
+    return 0;
 }

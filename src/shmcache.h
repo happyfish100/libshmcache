@@ -170,7 +170,21 @@ return none
 */
 void shmcache_clear_stats(struct shmcache_context *context);
 
+/**
+get serializer label
+parameters:
+	serializer: the serializer
+return serializer label
+*/
 const char *shmcache_get_serializer_label(const int serializer);
+
+/**
+clear hashtable
+parameters:
+	context: the context pointer
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_clear(struct shmcache_context *context);
 
 #ifdef __cplusplus
 }

@@ -99,3 +99,7 @@ boolean ShmCache::delete(string $key)
 array ShmCache::stats()
   * @return stats array
   * @example: echo json_encode($cache->stats(), JSON_PRETTY_PRINT);
+
+boolean ShmCache::clear()
+  * @desc: clear hashtable to empty
+  * @return true for success, false for fail

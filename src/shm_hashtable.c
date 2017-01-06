@@ -8,6 +8,7 @@
 #include "shmopt.h"
 #include "shm_lock.h"
 #include "shm_object_pool.h"
+#include "shm_striping_allocator.h"
 #include "shm_hashtable.h"
 
 int shm_ht_get_capacity(const int max_count)
@@ -121,6 +122,7 @@ int shm_ht_set(struct shmcache_context *context,
                     "alloc hash entry from shm fail", __LINE__);
            return ENOMEM;
        }
+       context->memory->usage.used += sizeof(struct shm_hash_entry);
        entry = HT_ENTRY_PTR(context, entry_offset);
     } else {
         old_value = entry->value;
@@ -192,6 +194,7 @@ void shm_ht_free_entry(struct shmcache_context *context,
     shm_value_allocator_free(context, &entry->value, recycled);
     entry->ht_next = 0;
     shm_object_pool_free(&context->hentry_allocator, entry_offset);
+    context->memory->usage.used -= sizeof(struct shm_hash_entry);
 }
 
 int shm_ht_delete_ex(struct shmcache_context *context,
@@ -227,4 +230,37 @@ int shm_ht_delete_ex(struct shmcache_context *context,
     }
 
     return result;
+}
+
+void shm_ht_clear(struct shmcache_context *context)
+{
+    struct shm_striping_allocator *allocator;
+    struct shm_striping_allocator *end;
+    int64_t allocator_offset;
+    int ht_count;
+
+    context->memory->stats.hashtable.last_clear_time = get_current_time();
+    ht_count = context->memory->hashtable.count;
+    memset(context->memory->hashtable.buckets, 0, sizeof(int64_t) *
+            context->memory->hashtable.capacity);
+    context->memory->hashtable.count = 0;
+    shm_list_init(&context->list);
+    shm_object_pool_init_full(&context->hentry_allocator);
+
+    shm_object_pool_init_empty(&context->value_allocator.doing);
+    shm_object_pool_init_empty(&context->value_allocator.done);
+    end = context->value_allocator.allocators +
+        context->memory->vm_info.striping.count.current;
+    for (allocator=context->value_allocator.allocators; allocator<end; allocator++) {
+        shm_striping_allocator_reset(allocator);
+        allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
+        allocator_offset = (char *)allocator - context->segments.hashtable.base;
+        shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
+    }
+    context->memory->usage.used = context->segments.hashtable.size -
+        shm_object_pool_get_object_memory_size(sizeof(struct shm_hash_entry),
+                context->config.max_key_count);
+    logInfo("file: "__FILE__", line: %d, pid: %d, "
+            "clear hashtable, %d entries be cleared!",
+            __LINE__, context->pid, ht_count);
 }

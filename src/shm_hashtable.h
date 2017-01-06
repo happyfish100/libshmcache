@@ -119,6 +119,14 @@ void shm_ht_free_entry(struct shmcache_context *context,
         struct shm_hash_entry *entry, const int64_t entry_offset,
         bool *recycled);
 
+/**
+remove all hashtable entries
+parameters:
+	context: the context pointer
+return none
+*/
+void shm_ht_clear(struct shmcache_context *context);
+
 static inline int shm_ht_count(struct shmcache_context *context)
 {
     return context->memory->hashtable.count;

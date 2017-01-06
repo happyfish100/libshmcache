@@ -441,6 +441,9 @@ static PHP_METHOD(ShmCache, stats)
             sizeof("del.total"), stats.shm.hashtable.del.total);
     zend_add_assoc_long_ex(hashtable, "del.success",
             sizeof("del.success"), stats.shm.hashtable.del.success);
+    zend_add_assoc_long_ex(hashtable, "last_clear_time",
+            sizeof("last_clear_time"),
+            stats.shm.hashtable.last_clear_time);
 
     ALLOC_INIT_ZVAL(memory);
     array_init(memory);
@@ -502,6 +505,20 @@ static PHP_METHOD(ShmCache, stats)
             stats.shm.lock.unlock_deadlock);
 }
 
+/* boolean ShmCache::clear()
+ * return true for success, false for fail
+ */
+static PHP_METHOD(ShmCache, clear)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+    RETURN_BOOL(shmcache_clear(i_obj->context) == 0);
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, 0, 1)
 ZEND_ARG_INFO(0, config_filename)
 ZEND_END_ARG_INFO()
@@ -535,6 +552,9 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_stats, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_clear, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 #define SHMC_ME(name, args) PHP_ME(ShmCache, name, args, ZEND_ACC_PUBLIC)
 static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(__construct,  arginfo___construct)
@@ -544,6 +564,7 @@ static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(getExpires,   arginfo_getExpires)
     SHMC_ME(delete,       arginfo_delete)
     SHMC_ME(stats,        arginfo_stats)
+    SHMC_ME(clear,        arginfo_clear)
     { NULL, NULL, NULL }
 };
 

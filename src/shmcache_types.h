@@ -22,7 +22,7 @@
 
 #define SHMCACHE_MAJOR_VERSION  1
 #define SHMCACHE_MINOR_VERSION  0
-#define SHMCACHE_PATCH_VERSION  0
+#define SHMCACHE_PATCH_VERSION  1
 
 #define SHMCACHE_MAX_KEY_SIZE  64
 
@@ -192,6 +192,7 @@ struct shm_stats {
         struct shm_counter get;
         struct shm_counter del;
         struct shm_counter incr;
+        int64_t last_clear_time;
     } hashtable;
 
     struct {
@@ -214,7 +215,7 @@ struct shm_stats {
         volatile int64_t unlock_deadlock;
     } lock;
 
-    char reserved[64];
+    char reserved[56];
 };
 
 struct shm_memory_info {

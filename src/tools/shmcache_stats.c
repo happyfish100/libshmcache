@@ -84,7 +84,8 @@ static void stats_output(struct shmcache_context *context)
             "get.total_count: %"PRId64"\n"
             "get.success_count: %"PRId64"\n"
             "del.total_count: %"PRId64"\n"
-            "del.success_count: %"PRId64"\n\n",
+            "del.success_count: %"PRId64"\n"
+            "last_clear_time: %"PRId64"\n\n",
             stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
@@ -95,7 +96,8 @@ static void stats_output(struct shmcache_context *context)
             stats.shm.hashtable.get.total,
             stats.shm.hashtable.get.success,
             stats.shm.hashtable.del.total,
-            stats.shm.hashtable.del.success);
+            stats.shm.hashtable.del.success,
+            (int64_t)stats.shm.hashtable.last_clear_time);
 
     printf("\nmemory stats:\n");
     printf("total: %.03f MB\n"
@@ -135,5 +137,4 @@ static void stats_output(struct shmcache_context *context)
             stats.shm.lock.retry,
             stats.shm.lock.detect_deadlock,
             stats.shm.lock.unlock_deadlock);
-
 }
