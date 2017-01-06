@@ -27,8 +27,7 @@ int64_t shm_striping_allocator_alloc(struct shm_striping_allocator *allocator,
 
     allocator->last_alloc_time = g_current_time;
     ptr_offset = allocator->offset.free;
-    allocator->offset.free += size;
     allocator->size.used += size;
+    allocator->offset.free += size;
     return ptr_offset;
 }
-

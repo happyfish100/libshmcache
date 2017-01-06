@@ -1,7 +1,6 @@
 //shm_object_pool.c
 
 #include <errno.h>
-#include <assert.h>
 #include <pthread.h>
 #include "logger.h"
 #include "shm_object_pool.h"
@@ -87,7 +86,6 @@ int64_t shm_object_pool_remove(struct shmcache_object_pool_context *op)
     int previous;
     int current;
 
-    assert(op->index != op->obj_pool_info->queue.tail);
     if (op->obj_pool_info->queue.head == op->obj_pool_info->queue.tail) {
         logError("file: "__FILE__", line: %d, "
                 "object pool is empty", __LINE__);
