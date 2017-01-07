@@ -1,7 +1,6 @@
 Copyright (C) 2016 Happy Fish / YuQing
 
-libshmcache may be copied only under the terms of the Less GNU General
-Public License(LGPL).
+libshmcache may be copied or modified under the terms of BSD License.
 
 libshmcache is a local share memory cache for multi processes.
 it is a high performance library because read mechanism is lockless.
