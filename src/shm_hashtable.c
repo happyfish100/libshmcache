@@ -262,6 +262,10 @@ int shm_ht_clear(struct shmcache_context *context)
     context->memory->usage.used.common = context->segments.hashtable.size -
         shm_object_pool_get_object_memory_size(sizeof(struct shm_hash_entry),
                 context->config.max_key_count);
+    context->memory->usage.used.entry = 0;
+    context->memory->usage.used.key = 0;
+    context->memory->usage.used.value = 0;
+
     logInfo("file: "__FILE__", line: %d, pid: %d, "
             "clear hashtable, %d entries be cleared!",
             __LINE__, context->pid, ht_count);
