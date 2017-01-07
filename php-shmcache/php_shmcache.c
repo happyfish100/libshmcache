@@ -406,6 +406,7 @@ static PHP_METHOD(ShmCache, stats)
     struct shmcache_stats stats;
     zval *hashtable;
     zval *memory;
+    zval *used_detail;
     zval *recycle;
     zval *lock;
 
@@ -415,6 +416,7 @@ static PHP_METHOD(ShmCache, stats)
     shmcache_stats(i_obj->context, &stats);
     array_init(return_value);
 
+    {
     ALLOC_INIT_ZVAL(hashtable);
     array_init(hashtable);
     zend_add_assoc_zval_ex(return_value, "hashtable",
@@ -444,7 +446,9 @@ static PHP_METHOD(ShmCache, stats)
     zend_add_assoc_long_ex(hashtable, "last_clear_time",
             sizeof("last_clear_time"),
             stats.shm.hashtable.last_clear_time);
+    }
 
+    {
     ALLOC_INIT_ZVAL(memory);
     array_init(memory);
     zend_add_assoc_zval_ex(return_value, "memory",
@@ -452,12 +456,29 @@ static PHP_METHOD(ShmCache, stats)
     zend_add_assoc_long_ex(memory, "total",
             sizeof("total"), stats.memory.max);
     zend_add_assoc_long_ex(memory, "alloced",
-            sizeof("alloced"), stats.memory.alloced);
+            sizeof("alloced"), stats.memory.usage.alloced);
     zend_add_assoc_long_ex(memory, "used",
             sizeof("used"), stats.memory.used);
     zend_add_assoc_long_ex(memory, "free",
             sizeof("free"), stats.memory.max - stats.memory.used);
+    }
 
+    {
+    ALLOC_INIT_ZVAL(used_detail);
+    array_init(used_detail);
+    zend_add_assoc_zval_ex(memory, "used_detail",
+            sizeof("used_detail"), used_detail);
+    zend_add_assoc_long_ex(used_detail, "common",
+            sizeof("common"), stats.memory.usage.used.common);
+    zend_add_assoc_long_ex(used_detail, "entry",
+            sizeof("entry"), stats.memory.usage.used.entry);
+    zend_add_assoc_long_ex(used_detail, "key",
+            sizeof("key"), stats.memory.usage.used.key);
+    zend_add_assoc_long_ex(used_detail, "value",
+            sizeof("value"), stats.memory.usage.used.value);
+    }
+
+    {
     ALLOC_INIT_ZVAL(recycle);
     array_init(recycle);
     zend_add_assoc_zval_ex(return_value, "recycle",
@@ -488,7 +509,9 @@ static PHP_METHOD(ShmCache, stats)
     zend_add_assoc_long_ex(recycle, "by_value_striping.force",
             sizeof("by_value_striping.force"),
             stats.shm.memory.recycle.value_striping.force);
+    }
 
+    {
     ALLOC_INIT_ZVAL(lock);
     array_init(lock);
     zend_add_assoc_zval_ex(return_value, "lock",
@@ -503,6 +526,7 @@ static PHP_METHOD(ShmCache, stats)
     zend_add_assoc_long_ex(lock, "unlock_deadlock",
             sizeof("unlock_deadlock"),
             stats.shm.lock.unlock_deadlock);
+    }
 }
 
 /* boolean ShmCache::clear()

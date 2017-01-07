@@ -71,7 +71,17 @@ int main(int argc, char *argv[])
 static void stats_output(struct shmcache_context *context)
 {
     struct shmcache_stats stats;
+    int avg_key_len;
+    int avg_value_len;
+
     shmcache_stats(context, &stats);
+    if (stats.hashtable.count > 0) {
+        avg_key_len = stats.memory.usage.used.key / stats.hashtable.count;
+        avg_value_len = stats.memory.usage.used.value / stats.hashtable.count;
+    } else {
+        avg_key_len = 0;
+        avg_value_len = 0;
+    }
 
     printf("\nhash table stats:\n");
     printf("max_key_count: %d\n"
@@ -103,12 +113,14 @@ static void stats_output(struct shmcache_context *context)
     printf("total: %.03f MB\n"
             "alloced: %.03f MB\n"
             "used: %.03f MB\n"
-            "free: %.03f MB\n\n",
+            "free: %.03f MB\n"
+            "avg_key_len: %d\n"
+            "avg_value_len: %d\n\n",
             (double)stats.memory.max / (1024 * 1024),
-            (double)stats.memory.alloced / (1024 * 1024),
+            (double)stats.memory.usage.alloced / (1024 * 1024),
             (double)stats.memory.used / (1024 * 1024),
             (double)(stats.memory.max - stats.memory.used) /
-            (1024 * 1024));
+            (1024 * 1024), avg_key_len, avg_value_len);
 
     printf("\nmemory recycle stats:\n");
     printf("clear_ht_entry.total_count: %"PRId64"\n"

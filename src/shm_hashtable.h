@@ -123,9 +123,9 @@ void shm_ht_free_entry(struct shmcache_context *context,
 remove all hashtable entries
 parameters:
 	context: the context pointer
-return none
+return cleared entries count
 */
-void shm_ht_clear(struct shmcache_context *context);
+int shm_ht_clear(struct shmcache_context *context);
 
 static inline int shm_ht_count(struct shmcache_context *context)
 {

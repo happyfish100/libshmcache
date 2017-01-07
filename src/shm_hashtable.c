@@ -122,7 +122,7 @@ int shm_ht_set(struct shmcache_context *context,
                     "alloc hash entry from shm fail", __LINE__);
            return ENOMEM;
        }
-       context->memory->usage.used += sizeof(struct shm_hash_entry);
+       context->memory->usage.used.entry += sizeof(struct shm_hash_entry);
        entry = HT_ENTRY_PTR(context, entry_offset);
     } else {
         old_value = entry->value;
@@ -152,6 +152,7 @@ int shm_ht_set(struct shmcache_context *context,
         context->memory->hashtable.buckets[index] = entry_offset;
     }
     context->memory->hashtable.count++;
+    context->memory->usage.used.key += entry->key_len;
 
     return 0;
 }
@@ -194,7 +195,8 @@ void shm_ht_free_entry(struct shmcache_context *context,
     shm_value_allocator_free(context, &entry->value, recycled);
     entry->ht_next = 0;
     shm_object_pool_free(&context->hentry_allocator, entry_offset);
-    context->memory->usage.used -= sizeof(struct shm_hash_entry);
+    context->memory->usage.used.entry -= sizeof(struct shm_hash_entry);
+    context->memory->usage.used.key -= entry->key_len;
 }
 
 int shm_ht_delete_ex(struct shmcache_context *context,
@@ -232,7 +234,7 @@ int shm_ht_delete_ex(struct shmcache_context *context,
     return result;
 }
 
-void shm_ht_clear(struct shmcache_context *context)
+int shm_ht_clear(struct shmcache_context *context)
 {
     struct shm_striping_allocator *allocator;
     struct shm_striping_allocator *end;
@@ -257,10 +259,11 @@ void shm_ht_clear(struct shmcache_context *context)
         allocator_offset = (char *)allocator - context->segments.hashtable.base;
         shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
     }
-    context->memory->usage.used = context->segments.hashtable.size -
+    context->memory->usage.used.common = context->segments.hashtable.size -
         shm_object_pool_get_object_memory_size(sizeof(struct shm_hash_entry),
                 context->config.max_key_count);
     logInfo("file: "__FILE__", line: %d, pid: %d, "
             "clear hashtable, %d entries be cleared!",
             __LINE__, context->pid, ht_count);
+    return ht_count;
 }

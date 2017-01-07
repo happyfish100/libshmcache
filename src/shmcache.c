@@ -217,7 +217,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         }
 
         context->memory->usage.alloced = context->segments.hashtable.size;
-        context->memory->usage.used = context->segments.hashtable.size -
+        context->memory->usage.used.common = context->segments.hashtable.size -
             shm_object_pool_get_object_memory_size(sizeof(struct shm_hash_entry),
                     context->config.max_key_count);
         if ((result=shmopt_create_value_segment(context)) != 0) {
@@ -845,8 +845,9 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
     stats->memory.max = context->segments.hashtable.size +
         context->memory->vm_info.segment.size *
         context->memory->vm_info.segment.count.max;
-    stats->memory.alloced = context->memory->usage.alloced;
-    stats->memory.used = context->memory->usage.used;
+    stats->memory.used = context->memory->usage.used.common +
+        context->memory->usage.used.entry + context->memory->usage.used.value;
+    stats->memory.usage = context->memory->usage;
     stats->hashtable.count = context->memory->hashtable.count;
     stats->hashtable.segment_size = context->segments.hashtable.size;
     stats->max_key_count =  MAX_KEYS_IN_SHM(context);
@@ -885,9 +886,10 @@ int shmcache_clear(struct shmcache_context *context)
         return result;
     }
 
-    shm_ht_clear(context);
-    if (context->config.va_policy.sleep_us_when_recycle_valid_entries > 0) {
-        usleep(context->config.va_policy.sleep_us_when_recycle_valid_entries);
+    if (shm_ht_clear(context) > 0) {
+        if (context->config.va_policy.sleep_us_when_recycle_valid_entries > 0) {
+            usleep(context->config.va_policy.sleep_us_when_recycle_valid_entries);
+        }
     }
     shm_unlock(context);
     return 0;

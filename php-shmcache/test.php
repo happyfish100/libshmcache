@@ -18,4 +18,4 @@ var_dump($cache->delete($key));
 
 //var_dump($cache->stats());
 echo json_encode($cache->stats(), JSON_PRETTY_PRINT);
-var_dump($cache->clear());
+//var_dump($cache->clear());
