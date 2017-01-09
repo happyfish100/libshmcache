@@ -1,7 +1,7 @@
 %define php_inidir %(php --ini | head -n 1 | awk -F ':' '{print $2;}' | sed 's/ //g')
 %define php_extdir %(php-config --extension-dir 2>/dev/null)
 Name: php-shmcache
-Version: 1.0.0
+Version: 1.0.1
 Release: 1%{?dist}
 Summary: The php extension for libshmcache
 License: GPL
@@ -12,9 +12,9 @@ Source: https://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 BuildRequires: libfastcommon-devel >= 1.0.33
-BuildRequires: libshmcache-devel >= 1.0.0
+BuildRequires: libshmcache-devel >= 1.0.1
 Requires: libfastcommon >= 1.0.33
-Requires: libshmcache >= 1.0.0
+Requires: libshmcache >= 1.0.1
 
 %description
 This package provides the php extension for libshmcache
