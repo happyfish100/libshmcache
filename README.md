@@ -85,9 +85,10 @@ mixed ShmCache::get(string $key[, boolean returnExpired = false])
   * @example: $value = $cache->get($key);
 
 long ShmCache::getExpires(string $key[, boolean returnExpired = false])
+  * @desc: get expires time as unix timestamp
   * @param key: the key, must be a string variable
   * @param returnExpired: if return expired key / value
-  * @return expires timestamp, 0 for never expired, false for not exist
+  * @return expires timestamps such as 1483952635, 0 for never expired, false for not exist
   * @example: $value = $cache->getExpires($key);
 
 boolean ShmCache::delete(string $key)
