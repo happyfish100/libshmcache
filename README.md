@@ -26,6 +26,8 @@ stable features are:
     recycle more than one valid (not expired) hash/KV entries
 
 other features are:
+  * support both related processes (such as parent process and subprocesses)
+    and unrelated processes (such as php-fpm and php CLI, two php CLI processes, etc.)
   * incrementally allocate value buffer segment as need, this is controlled
     by config parameter: segment_size
   * provide abundant stats info: counters for set, get and delete,
