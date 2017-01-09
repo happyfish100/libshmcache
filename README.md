@@ -31,6 +31,8 @@ other features are:
   * provide abundant stats info: counters for set, get and delete,
     memory recycle stats, lock stats etc.
   * support atomic increment
+  * PHP extension support multiple serializers: igbinary, msgpack, php and NONE.
+    these serializers can coexist in a share memory.
 
 utility commands in directory: src/tools, in /usr/bin/ after make && make install
   * shmcache_set: set a key
