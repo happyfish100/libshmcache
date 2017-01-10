@@ -82,13 +82,13 @@ long ShmCache::incr(string $key, long $increment, long $ttl)
   * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
   * @return the value after increase, false for fail
 
-mixed ShmCache::get(string $key[, boolean returnExpired = false])
+mixed ShmCache::get(string $key[, boolean $returnExpired = false])
   * @param key: the key, must be a string variable
   * @param returnExpired: if return expired key / value
   * @return mixed value for success, false for key not exist or expired
   * @example: $value = $cache->get($key);
 
-long ShmCache::getExpires(string $key[, boolean returnExpired = false])
+long ShmCache::getExpires(string $key[, boolean $returnExpired = false])
   * @desc: get expires time as unix timestamp
   * @param key: the key, must be a string variable
   * @param returnExpired: if return expired key / value
@@ -105,5 +105,5 @@ array ShmCache::stats()
   * @example: echo json_encode($cache->stats(), JSON_PRETTY_PRINT);
 
 boolean ShmCache::clear()
-  * @desc: clear hashtable to empty
+  * @desc: clear hashtable to empty. use this function carefully because it will remove all keys in cache
   * @return true for success, false for fail
