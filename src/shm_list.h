@@ -79,8 +79,8 @@ static inline void shm_list_delete(struct shmcache_list *list, int64_t obj_offse
 
     node = SHM_LIST_PTR(list, obj_offset);
     if (node->next == obj_offset) {
-        logError("file: "__FILE__", line: %d, "
-                "do NOT need remove from list, obj: %"PRId64,
+        logError("file: " __FILE__", line: %d, "
+                "do NOT need remove from list, obj: %" PRId64,
                 __LINE__, obj_offset);
         return;
     }
