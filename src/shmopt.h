@@ -63,7 +63,7 @@ static inline char *shmopt_get_value_segment(struct shmcache_context *context,
         }
         return context->segments.values.items[index].base;
     } else {
-        logError("file: "__FILE__", line: %d, "
+        logError("file: " __FILE__", line: %d, "
                 "invalid index: %d >= %d", __LINE__,
                 index, context->memory->vm_info.segment.count.current);
         return NULL;
