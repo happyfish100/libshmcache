@@ -30,7 +30,7 @@ libshmcache.a: $(SHMCACHE_STATIC_OBJS)
 .c:
 	$(COMPILE) -o $@ $<  $(SHMCACHE_STATIC_OBJS) $(LIB_PATH) $(INC_PATH)
 .c.o:
-	$(COMPILE) -c -o $@ $<  $(INC_PATH)
+	$(COMPILE) -c -fPIC -o $@ $<  $(INC_PATH)
 .c.lo:
 	$(COMPILE) -c -fPIC -o $@ $<  $(INC_PATH)
 install:
