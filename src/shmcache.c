@@ -590,6 +590,16 @@ int shmcache_load_config(struct shmcache_config *config,
         if (result != 0) {
             break;
         }
+        if (config->max_memory / config->segment_size > 255) {
+            int64_t segment_size;
+            segment_size = config->max_memory / 255;
+            logWarning("file: "__FILE__", line: %d, "
+                    "config file: %s, segment_size: %"PRId64
+                    " is too small, set to %"PRId64,
+                    __LINE__, config_filename,
+                    config->segment_size, segment_size);
+            config->segment_size = segment_size;
+        }
 
         config->max_key_count = iniGetIntValue(NULL, "max_key_count",
                 &iniContext, 0);
