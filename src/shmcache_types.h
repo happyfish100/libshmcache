@@ -84,11 +84,8 @@ struct shm_segment_striping_pair {
 };
 
 struct shm_value {
-    int64_t offset; //value segment offset
-    int size;       //alloc size
     int length;     //value length
     int options;    //options for application
-    struct shm_segment_striping_pair index;
 };
 
 struct shm_list {
@@ -96,14 +93,29 @@ struct shm_list {
     int64_t next;
 };
 
+union shm_hentry_offset {
+    int64_t offset;
+    struct {
+        int index :16;
+        int64_t offset :48;
+    } segment;
+};
+
 struct shm_hash_entry {
     struct shm_list list;  //for recycle, must be first
 
-    char key[SHMCACHE_MAX_KEY_SIZE];
     int key_len;
     time_t expires;
     struct shm_value value;
+
+    struct {
+        int size;       //alloc size
+        struct shm_segment_striping_pair index;
+        int64_t offset; //value segment offset
+    } memory;
+
     int64_t ht_next;  //for hashtable
+    char key[0];
 };
 
 struct shm_ring_queue {
@@ -226,7 +238,6 @@ struct shm_memory_info {
     int max_key_count;
     struct shm_lock lock;
     struct shm_value_memory_info vm_info;  //value memory info
-    struct shm_object_pool_info hentry_obj_pool;  //hash entry object pool
     struct shm_value_allocator value_allocator;
     struct shm_stats stats;
     struct shm_memory_usage usage;
@@ -265,7 +276,6 @@ struct shmcache_value_allocator_context {
 };
 
 struct shmcache_list {
-    char *base;
     struct {
         struct shm_list *ptr;
         int64_t offset;
@@ -286,7 +296,6 @@ struct shmcache_context {
         } values;
     } segments;
 
-    struct shmcache_object_pool_context hentry_allocator;
     struct shmcache_value_allocator_context value_allocator;
     struct shmcache_list list;   //for value recycle
     bool create_segment;  //if check segment size

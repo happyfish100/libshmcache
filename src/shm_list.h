@@ -10,13 +10,23 @@
 #include "common_define.h"
 #include "logger.h"
 #include "shmcache_types.h"
+#include "shm_value_allocator.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SHM_LIST_PTR(list, offset) ((struct shm_list *)((list)->base + offset))
-#define SHM_LIST_TYPE_PTR(list, type, offset) ((type *)((list)->base + offset))
+static inline struct shm_list *shm_list_ptr(struct shmcache_context *context,
+        int64_t obj_offset)
+{
+    if (obj_offset == context->list.head.offset) {
+        return context->list.head.ptr;
+    } else {
+        return (struct shm_list *)shm_get_hentry_ptr(context, obj_offset);
+    }
+}
+
+#define SHM_LIST_TYPE_PTR(context, type, offset) ((type *)shm_list_ptr(context, offset))
 
 /**
 list set
@@ -24,12 +34,15 @@ parameters:
 	list: the list
 return none
 */
-static inline void shm_list_set(struct shmcache_list *list,
+static inline void shm_list_set(struct shmcache_context *context,
         char *base, struct shm_list *head)
 {
-    list->base = base;
-    list->head.ptr = head;
-    list->head.offset = (char *)head - list->base;
+    union shm_hentry_offset conv;
+    conv.segment.index = -1;
+    conv.segment.offset = (char *)head - base;
+
+    context->list.head.ptr = head;
+    context->list.head.offset = conv.offset;
 }
 
 /**
@@ -38,17 +51,18 @@ parameters:
 	list: the list
 return none
 */
-static inline void shm_list_init(struct shmcache_list *list)
+static inline void shm_list_init(struct shmcache_context *context)
 {
-    list->head.ptr->prev = list->head.ptr->next = list->head.offset;
+    context->list.head.ptr->prev = context->list.head.offset;
+    context->list.head.ptr->next = context->list.head.offset;
 }
 
-#define SHM_LIST_ADD_TO_TAIL(list, node, obj_offset) \
+#define SHM_LIST_ADD_TO_TAIL(context, node, obj_offset) \
     do { \
-        node->next = list->head.offset;    \
-        node->prev = list->head.ptr->prev; \
-        SHM_LIST_PTR(list, list->head.ptr->prev)->next = obj_offset; \
-        list->head.ptr->prev = obj_offset; \
+        node->next = context->list.head.offset;    \
+        node->prev = context->list.head.ptr->prev; \
+        shm_list_ptr(context, context->list.head.ptr->prev)->next = obj_offset; \
+        context->list.head.ptr->prev = obj_offset; \
     } while (0)
 
 /**
@@ -58,12 +72,12 @@ parameters:
     obj_offset: the object offset
 return none
 */
-static inline void shm_list_add_tail(struct shmcache_list *list, int64_t obj_offset)
+static inline void shm_list_add_tail(struct shmcache_context *context, int64_t obj_offset)
 {
     struct shm_list *node;
 
-    node = SHM_LIST_PTR(list, obj_offset);
-    SHM_LIST_ADD_TO_TAIL(list, node, obj_offset);
+    node = shm_list_ptr(context, obj_offset);
+    SHM_LIST_ADD_TO_TAIL(context, node, obj_offset);
 }
 
 /**
@@ -73,11 +87,11 @@ parameters:
     obj_offset: the object offset
 return none
 */
-static inline void shm_list_delete(struct shmcache_list *list, int64_t obj_offset)
+static inline void shm_list_delete(struct shmcache_context *context, int64_t obj_offset)
 {
     struct shm_list *node;
 
-    node = SHM_LIST_PTR(list, obj_offset);
+    node = shm_list_ptr(context, obj_offset);
     if (node->next == obj_offset) {
         logError("file: " __FILE__", line: %d, "
                 "do NOT need remove from list, obj: %" PRId64,
@@ -85,8 +99,8 @@ static inline void shm_list_delete(struct shmcache_list *list, int64_t obj_offse
         return;
     }
 
-    SHM_LIST_PTR(list, node->prev)->next = node->next;
-    SHM_LIST_PTR(list, node->next)->prev = node->prev;
+    shm_list_ptr(context, node->prev)->next = node->next;
+    shm_list_ptr(context, node->next)->prev = node->prev;
     node->prev = node->next = obj_offset;
 }
 
@@ -97,15 +111,15 @@ parameters:
     obj_offset: the object offset
 return none
 */
-static inline void shm_list_move_tail(struct shmcache_list *list, int64_t obj_offset)
+static inline void shm_list_move_tail(struct shmcache_context *context, int64_t obj_offset)
 {
     struct shm_list *node;
 
-    node = SHM_LIST_PTR(list, obj_offset);
-    SHM_LIST_PTR(list, node->prev)->next = node->next;
-    SHM_LIST_PTR(list, node->next)->prev = node->prev;
+    node = shm_list_ptr(context, obj_offset);
+    shm_list_ptr(context, node->prev)->next = node->next;
+    shm_list_ptr(context, node->next)->prev = node->prev;
 
-    SHM_LIST_ADD_TO_TAIL(list, node, obj_offset);
+    SHM_LIST_ADD_TO_TAIL(context, node, obj_offset);
 }
 
 /**
@@ -114,9 +128,9 @@ parameters:
 	list: the list
 return true for empty, false for NOT empty
 */
-static inline bool shm_list_empty(struct shmcache_list *list)
+static inline bool shm_list_empty(struct shmcache_context *context)
 {
-    return (list->head.ptr->next == list->head.offset);
+    return (context->list.head.ptr->next == context->list.head.offset);
 }
 
 /**
@@ -125,13 +139,13 @@ parameters:
 	list: the list
 return first object offset
 */
-static inline int64_t shm_list_first(struct shmcache_list *list)
+static inline int64_t shm_list_first(struct shmcache_context *context)
 {
-    if (list->head.ptr->next == list->head.offset) {  //empty
-        return 0;
+    if (context->list.head.ptr->next == context->list.head.offset) {  //empty
+        return -1;
     }
 
-    return list->head.ptr->next;
+    return context->list.head.ptr->next;
 }
 
 /**
@@ -140,13 +154,13 @@ parameters:
 	list: the list
 return next object offset
 */
-static inline int64_t shm_list_next(struct shmcache_list *list,
+static inline int64_t shm_list_next(struct shmcache_context *context,
         const int64_t current_offset)
 {
     struct shm_list *node;
-    node = SHM_LIST_PTR(list, current_offset);
-    if (node->next == list->head.offset) {
-        return 0;
+    node = shm_list_ptr(context, current_offset);
+    if (node->next == context->list.head.offset) {
+        return -1;
     }
     return node->next;
 }
@@ -157,26 +171,26 @@ parameters:
 	list: the list
 return count
 */
-static inline int shm_list_count(struct shmcache_list *list)
+static inline int shm_list_count(struct shmcache_context *context)
 {
     int64_t offset;
     int count;
 
     count = 0;
-    offset = list->head.ptr->next;
-    while (offset != list->head.offset) {
+    offset = context->list.head.ptr->next;
+    while (offset != context->list.head.offset) {
         count++;
-        offset = SHM_LIST_PTR(list, offset)->next;
+        offset = shm_list_ptr(context, offset)->next;
     }
 
     return count;
 }
 
-#define SHM_LIST_FOR_EACH(list, current, member) \
-    for (current=SHM_LIST_TYPE_PTR(list, typeof(*current),    \
-                (list)->head.ptr->next);                      \
-            &current->member != (list)->head.ptr;             \
-            current=SHM_LIST_TYPE_PTR(list, typeof(*current), \
+#define SHM_LIST_FOR_EACH(context, current, member) \
+    for (current=SHM_LIST_TYPE_PTR(context, typeof(*current),    \
+                context->list.head.ptr->next);                      \
+            &current->member != context->list.head.ptr;             \
+            current=SHM_LIST_TYPE_PTR(context, typeof(*current), \
                 current->member.next))
 
 #ifdef __cplusplus

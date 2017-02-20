@@ -14,9 +14,6 @@
 #include "shm_list.h"
 #include "shm_value_allocator.h"
 
-#define HT_ENTRY_PTR(context, entry_offset) ((struct shm_hash_entry *) \
-    (context->segments.hashtable.base + entry_offset))
-
 #define HT_CALC_EXPIRES(current_time, ttl) \
     (ttl == SHMCACHE_NEVER_EXPIRED ? 0 : current_time + ttl)
 

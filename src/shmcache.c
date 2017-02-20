@@ -24,11 +24,10 @@
 //HT for HashTable, VA for Value Allocator
 #define OFFSETS_INDEX_HT_BUCKETS            0
 #define OFFSETS_INDEX_HT_POOL_QUEUE         1
-#define OFFSETS_INDEX_HT_POOL_OBJECT        2
-#define OFFSETS_INDEX_VA_POOL_QUEUE_DOING   3
-#define OFFSETS_INDEX_VA_POOL_QUEUE_DONE    4
-#define OFFSETS_INDEX_VA_POOL_OBJECT        5
-#define OFFSETS_COUNT                       6
+#define OFFSETS_INDEX_VA_POOL_QUEUE_DOING   2
+#define OFFSETS_INDEX_VA_POOL_QUEUE_DONE    3
+#define OFFSETS_INDEX_VA_POOL_OBJECT        4
+#define OFFSETS_COUNT                       5
 
 #define SHM_HASH_TABLE_PROJ_ID      1
 
@@ -111,10 +110,6 @@ static int64_t shmcache_get_ht_segment_size(struct shmcache_context *context,
     total_size += shm_object_pool_get_queue_memory_size(
             context->config.max_key_count + 1);
 
-    ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT] = total_size;
-    total_size += shm_object_pool_get_object_memory_size(
-            sizeof(struct shm_hash_entry), context->config.max_key_count);
-
     va_pool_queue_memory_size = shm_object_pool_get_queue_memory_size(
             striping->count.max + 1);
 
@@ -163,14 +158,6 @@ static int shmcache_do_init(struct shmcache_context *context,
     }
 
     queue_base = (int64_t *)(context->segments.hashtable.base +
-            ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE]);
-    shmcache_set_object_pool_context(&context->hentry_allocator,
-            &context->memory->hentry_obj_pool,
-            sizeof(struct shm_hash_entry),
-            ht_offsets[OFFSETS_INDEX_HT_POOL_OBJECT],
-            context->config.max_key_count + 1, queue_base, true);
-
-    queue_base = (int64_t *)(context->segments.hashtable.base +
             ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);
     shmcache_set_object_pool_context(&context->value_allocator.doing,
             &context->memory->value_allocator.doing,
@@ -211,15 +198,13 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
         context->memory->vm_info.striping = *striping;
 
         shm_ht_init(context, ht_capacity);
-        shm_list_init(&context->list);
+        shm_list_init(context);
         if ((result=shmcache_do_init(context, ht_offsets)) != 0) {
             break;
         }
 
         context->memory->usage.alloced = context->segments.hashtable.size;
-        context->memory->usage.used.common = context->segments.hashtable.size -
-            shm_object_pool_get_object_memory_size(sizeof(struct shm_hash_entry),
-                    context->config.max_key_count);
+        context->memory->usage.used.common = context->segments.hashtable.size;
         if ((result=shmopt_create_value_segment(context)) != 0) {
             break;
         }
@@ -241,11 +226,6 @@ static void shmcache_set_obj_allocators(struct shmcache_context *context,
         const int64_t *ht_offsets)
 {
     int64_t *queue_base;
-
-    queue_base = (int64_t *)(context->segments.hashtable.base +
-            ht_offsets[OFFSETS_INDEX_HT_POOL_QUEUE]);
-    shm_object_pool_set(&context->hentry_allocator,
-            &context->memory->hentry_obj_pool, queue_base);
 
     queue_base = (int64_t *)(context->segments.hashtable.base +
             ht_offsets[OFFSETS_INDEX_VA_POOL_QUEUE_DOING]);
@@ -418,7 +398,7 @@ int shmcache_init(struct shmcache_context *context,
     memset(context->segments.values.items, 0, bytes);
 
     context->memory = (struct shm_memory_info *)context->segments.hashtable.base;
-    shm_list_set(&context->list, context->segments.hashtable.base,
+    shm_list_set(context, context->segments.hashtable.base,
             &context->memory->hashtable.head);
     shmcache_set_obj_allocators(context, ht_offsets);
     if (ht_segemnt_exists && check_segment &&
@@ -444,11 +424,10 @@ int shmcache_init(struct shmcache_context *context,
             lock_policy.trylock_interval_us;
     }
     logDebug("file: "__FILE__", line: %d, "
-            "doing count: %d, done count: %d, hentry free count: %d, "
+            "doing count: %d, done count: %d, "
             "total entry count: %d", __LINE__,
             shm_object_pool_get_count(&context->value_allocator.doing),
             shm_object_pool_get_count(&context->value_allocator.done),
-            shm_object_pool_get_count(&context->hentry_allocator),
             MAX_KEYS_IN_SHM(context));
 
 #if 0
@@ -462,10 +441,10 @@ int shmcache_init(struct shmcache_context *context,
         int64_t bytes;
         int ii;
 
-        logInfo("list count: %d", shm_list_count(&context->list));
+        logInfo("list count: %d", shm_list_count(context));
         ii = 0;
         bytes = 0;
-        SHM_LIST_FOR_EACH(&context->list, current, list) {
+        SHM_LIST_FOR_EACH(context, current, list) {
 
             key.data = current->key;
             key.length = current->key_len;
@@ -857,7 +836,7 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
         context->memory->vm_info.segment.size *
         context->memory->vm_info.segment.count.max;
     stats->memory.used = context->memory->usage.used.common +
-        context->memory->usage.used.entry + context->memory->usage.used.value;
+        context->memory->usage.used.value;
     stats->memory.usage = context->memory->usage;
     stats->hashtable.count = context->memory->hashtable.count;
     stats->hashtable.segment_size = context->segments.hashtable.size;

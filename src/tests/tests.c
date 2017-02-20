@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[])
 {
-#define MAX_VALUE_SIZE  (2 * 1024)
+#define MAX_VALUE_SIZE  (8 * 1024)
 
 	int result;
     struct shmcache_context context;
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     char szKey[SHMCACHE_MAX_KEY_SIZE];
     char szValue[MAX_VALUE_SIZE];
     int value_len;
-    int ttl = 600;
+    int ttl = 120;
     int i;
 	
 	log_init();
