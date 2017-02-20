@@ -160,11 +160,11 @@ static int shm_get_key(const char *filename, const int proj_id,
         }
     }
 
-    *key = ftok(filename, proj_id);
+    *key = fc_ftok(filename, proj_id);
     if (*key == -1) {
         result = errno != 0 ? errno : EFAULT;
         logError("file: "__FILE__", line: %d, "
-                "call ftok fail, filename: %s, proj_id: %d, "
+                "call fc_ftok fail, filename: %s, proj_id: %d, "
                 "errno: %d, error info: %s", __LINE__,
                 filename, proj_id, result, strerror(result));
         return result;

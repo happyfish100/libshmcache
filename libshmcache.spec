@@ -5,7 +5,7 @@
 %define LibShmcacheDebuginfo  libshmcache-debuginfo
 
 Name: libshmcache
-Version: 1.0.1
+Version: 1.0.2
 Release: 1%{?dist}
 Summary: a high performance local share memory cache for multi processes
 License: LGPL
@@ -15,10 +15,10 @@ Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
-BuildRequires: libfastcommon-devel >= 1.0.33
+BuildRequires: libfastcommon-devel >= 1.0.35
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-Requires: libfastcommon >= 1.0.33
+Requires: libfastcommon >= 1.0.35
 
 %description
 libshmcache is a local share memory cache for multi processes.
