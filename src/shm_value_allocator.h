@@ -69,7 +69,7 @@ static inline struct shm_hash_entry *shm_get_hentry_ptr(struct shmcache_context 
     union shm_hentry_offset conv;
 
     conv.offset = offset;
-    base = shmopt_get_value_segment(context, conv.segment.index);
+    base = shmopt_get_value_segment(context, conv.segment.index & 0xFF);
     if (base != NULL) {
         return (struct shm_hash_entry *)(base + conv.segment.offset);
     } else {
@@ -80,7 +80,7 @@ static inline struct shm_hash_entry *shm_get_hentry_ptr(struct shmcache_context 
 static inline int64_t shm_get_hentry_offset(struct shm_hash_entry *entry)
 {
     union shm_hentry_offset conv;
-    conv.segment.index = entry->memory.index.segment;
+    conv.segment.index = entry->memory.index.segment | 0x4000;
     conv.segment.offset = entry->memory.offset;
 
     return conv.offset;

@@ -112,7 +112,7 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
     clear_count = valid_count = 0;
     g_current_time = time(NULL);
     recycled = false;
-    while ((entry_offset=shm_list_first(context)) >= 0) {
+    while ((entry_offset=shm_list_first(context)) > 0) {
         entry = shm_get_hentry_ptr(context, entry_offset);
         index = entry->memory.index.striping;
         key.data = entry->key;
