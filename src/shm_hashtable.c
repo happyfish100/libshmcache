@@ -214,7 +214,8 @@ int shm_ht_clear(struct shmcache_context *context)
     int64_t allocator_offset;
     int ht_count;
 
-    context->memory->stats.hashtable.last_clear_time = get_current_time();
+    context->memory->stats.hashtable.last_clear_time =
+        context->memory->stats.last.calc_time = get_current_time();
     ht_count = context->memory->hashtable.count;
     memset(context->memory->hashtable.buckets, 0, sizeof(int64_t) *
             context->memory->hashtable.capacity);

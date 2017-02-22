@@ -446,6 +446,20 @@ static PHP_METHOD(ShmCache, stats)
     zend_add_assoc_long_ex(hashtable, "last_clear_time",
             sizeof("last_clear_time"),
             stats.shm.hashtable.last_clear_time);
+    zend_add_assoc_long_ex(hashtable, "get.qps",
+            sizeof("get.qps"), stats.hit.get_qps);
+    if (stats.hit.ratio > 0.00) {
+        char hit_ratio[32];
+        int ratio_len;
+        ratio_len = sprintf(hit_ratio, "%.2f%%", stats.hit.ratio * 100.00);
+        zend_add_assoc_stringl_ex(hashtable, "hit.ratio",
+                sizeof("hit.ratio"), hit_ratio, ratio_len, 1);
+    } else {
+        zend_add_assoc_stringl_ex(hashtable, "hit.ratio",
+                sizeof("hit.ratio"), "-", 1, 1);
+    }
+    zend_add_assoc_long_ex(hashtable, "hit.last_seconds",
+            sizeof("hit.last_seconds"), stats.hit.seconds);
     }
 
     {

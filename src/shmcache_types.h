@@ -219,7 +219,13 @@ struct shm_stats {
         volatile int64_t unlock_deadlock;
     } lock;
 
-    char reserved[32];
+    //for calculate hit ratio
+    struct {
+        struct shm_counter get;
+        int64_t calc_time;
+    } last;
+
+    char reserved[8];
 };
 
 struct shm_memory_usage {
@@ -309,11 +315,18 @@ struct shmcache_stats {
         int count;  //key count
     } hashtable;
     int max_key_count;
+
     struct {
         int64_t max;
         int64_t used;
         struct shm_memory_usage usage;
     } memory;
+
+    struct {
+        double ratio;
+        int get_qps;
+        int seconds;
+    } hit;
 };
 
 #ifdef __cplusplus

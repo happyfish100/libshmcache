@@ -203,6 +203,7 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
             break;
         }
 
+        context->memory->stats.last.calc_time = get_current_time();
         context->memory->usage.alloced = context->segments.hashtable.size;
         context->memory->usage.used.common = context->segments.hashtable.size;
         if ((result=shmopt_create_value_segment(context)) != 0) {
@@ -831,6 +832,9 @@ int shmcache_remove_all(struct shmcache_context *context)
 
 void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *stats)
 {
+    int64_t total_delta;
+    int64_t success_delta;
+
     stats->shm = context->memory->stats;
     stats->memory.max = context->segments.hashtable.size +
         context->memory->vm_info.segment.size *
@@ -840,7 +844,32 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
     stats->memory.usage = context->memory->usage;
     stats->hashtable.count = context->memory->hashtable.count;
     stats->hashtable.segment_size = context->segments.hashtable.size;
-    stats->max_key_count =  MAX_KEYS_IN_SHM(context);
+    stats->max_key_count = MAX_KEYS_IN_SHM(context);
+
+    if (!g_schedule_flag) {
+        g_current_time = time(NULL);
+    }
+    stats->hit.seconds = g_current_time - context->memory->stats.last.calc_time;
+    total_delta = context->memory->stats.hashtable.get.total
+        - context->memory->stats.last.get.total;
+    if (total_delta > 0) {
+        success_delta = context->memory->stats.hashtable.get.success
+            - context->memory->stats.last.get.success;
+        stats->hit.ratio = (double)success_delta / (double)total_delta;
+        if (stats->hit.seconds > 0) {
+            context->memory->stats.last.calc_time = g_current_time;
+            context->memory->stats.last.get.total =
+                context->memory->stats.hashtable.get.total;
+            context->memory->stats.last.get.success =
+                context->memory->stats.hashtable.get.success;
+            stats->hit.get_qps = total_delta / stats->hit.seconds;
+        } else {
+            stats->hit.get_qps = total_delta;
+        }
+    } else {
+        stats->hit.ratio = -1.00;
+        stats->hit.get_qps = 0;
+    }
 }
 
 void shmcache_clear_stats(struct shmcache_context *context)
