@@ -73,6 +73,7 @@ static void stats_output(struct shmcache_context *context)
     struct shmcache_stats stats;
     int avg_key_len;
     int avg_value_len;
+    char total_raito[32];
     char hit_raito[32];
 
     shmcache_stats(context, &stats);
@@ -82,6 +83,13 @@ static void stats_output(struct shmcache_context *context)
     } else {
         avg_key_len = 0;
         avg_value_len = 0;
+    }
+    if (stats.shm.hashtable.get.total > 0) {
+        sprintf(total_raito, "%.2f%%", 100.00 * stats.shm.hashtable.get.success
+                / (double)stats.shm.hashtable.get.total);
+    } else {
+        total_raito[0] = '-';
+        total_raito[1] = '\0';
     }
     if (stats.hit.ratio > 0.00) {
         sprintf(hit_raito, "%.2f%%", stats.hit.ratio * 100.00);
@@ -104,7 +112,8 @@ static void stats_output(struct shmcache_context *context)
             "del.success_count: %"PRId64"\n"
             "last_clear_time: %"PRId64"\n"
             "get.qps: %.2f\n"
-            "hit ratio (last %d seconds): %s\n\n",
+            "hit ratio (last %d seconds): %s\n"
+            "total hit ratio: %s\n\n",
             stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
@@ -117,7 +126,8 @@ static void stats_output(struct shmcache_context *context)
             stats.shm.hashtable.del.total,
             stats.shm.hashtable.del.success,
             (int64_t)stats.shm.hashtable.last_clear_time,
-            stats.hit.get_qps, stats.hit.seconds, hit_raito);
+            stats.hit.get_qps, stats.hit.seconds, hit_raito,
+            total_raito);
 
     printf("\nmemory stats:\n");
     printf("total: %.03f MB\n"
