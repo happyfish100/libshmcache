@@ -324,7 +324,7 @@ struct shmcache_stats {
 
     struct {
         double ratio;
-        int get_qps;
+        double get_qps;
         int seconds;
     } hit;
 };

@@ -446,7 +446,7 @@ static PHP_METHOD(ShmCache, stats)
     zend_add_assoc_long_ex(hashtable, "last_clear_time",
             sizeof("last_clear_time"),
             stats.shm.hashtable.last_clear_time);
-    zend_add_assoc_long_ex(hashtable, "get.qps",
+    zend_add_assoc_double_ex(hashtable, "get.qps",
             sizeof("get.qps"), stats.hit.get_qps);
     if (stats.hit.ratio > 0.00) {
         char hit_ratio[32];

@@ -862,13 +862,13 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
                 context->memory->stats.hashtable.get.total;
             context->memory->stats.last.get.success =
                 context->memory->stats.hashtable.get.success;
-            stats->hit.get_qps = total_delta / stats->hit.seconds;
+            stats->hit.get_qps = (double)total_delta / (double)stats->hit.seconds;
         } else {
             stats->hit.get_qps = total_delta;
         }
     } else {
         stats->hit.ratio = -1.00;
-        stats->hit.get_qps = 0;
+        stats->hit.get_qps = 0.00;
     }
 }
 

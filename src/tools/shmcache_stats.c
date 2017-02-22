@@ -103,7 +103,7 @@ static void stats_output(struct shmcache_context *context)
             "del.total_count: %"PRId64"\n"
             "del.success_count: %"PRId64"\n"
             "last_clear_time: %"PRId64"\n"
-            "get.qps: %d\n"
+            "get.qps: %.2f\n"
             "hit ratio (last %d seconds): %s\n\n",
             stats.max_key_count,
             stats.hashtable.count,
