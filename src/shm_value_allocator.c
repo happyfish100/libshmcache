@@ -1,7 +1,6 @@
 //shm_value_allocator.c
 
 #include <errno.h>
-#include <assert.h>
 #include "sched_thread.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
@@ -58,7 +57,7 @@ static struct shm_hash_entry *shm_value_allocator_do_alloc(struct shmcache_conte
             removed_offset = shm_object_pool_remove(&context->value_allocator.doing);
             if (removed_offset == allocator_offset) {
                 allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DONE;
-                assert(shm_object_pool_push(&context->value_allocator.done, allocator_offset) == 0);
+                shm_object_pool_push(&context->value_allocator.done, allocator_offset);
             } else {
                 logCrit("file: "__FILE__", line: %d, "
                         "shm_object_pool_remove fail, "
@@ -83,7 +82,7 @@ static int shm_value_allocator_do_recycle(struct shmcache_context *context,
         if (shm_object_pool_remove_by(&context->value_allocator.done,
                     allocator_offset) >= 0) {
             allocator->in_which_pool = SHMCACHE_STRIPING_ALLOCATOR_POOL_DOING;
-            assert(shm_object_pool_push(&context->value_allocator.doing, allocator_offset) == 0);
+            shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
         } else {
             logCrit("file: "__FILE__", line: %d, "
                     "shm_object_pool_remove_by fail, "
