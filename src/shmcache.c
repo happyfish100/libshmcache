@@ -661,9 +661,9 @@ int shmcache_load_config(struct shmcache_config *config,
             break;
         }
         config->recycle_key_once = iniGetIntValue(NULL,
-                "recycle_key_once", &iniContext, 1);
+                "recycle_key_once", &iniContext, 0);
         if (config->recycle_key_once <= 0) {
-            config->recycle_key_once = 1;
+            config->recycle_key_once = -1;
         }
         load_log_level(&iniContext);
     } while (0);
