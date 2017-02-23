@@ -80,7 +80,7 @@ zend_module_entry shmcache_module_entry = {
 	NULL,//PHP_RINIT(shmcache),
 	NULL,//PHP_RSHUTDOWN(shmcache),
 	PHP_MINFO(shmcache),
-	"1.0.1",
+	"1.0.2",
 	STANDARD_MODULE_PROPERTIES
 };
 
