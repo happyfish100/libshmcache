@@ -95,7 +95,7 @@ static int shm_value_allocator_do_recycle(struct shmcache_context *context,
 }
 
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_counter *recycle_counter, const int recycle_keys_once)
+        struct shm_recycle_stats *recycle_stats, const int recycle_keys_once)
 {
     int64_t entry_offset;
     struct shm_hash_entry *entry;
@@ -154,11 +154,12 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
         context->memory->stats.memory.clear_ht_entry.valid += valid_count;
     }
 
-    recycle_counter->total++;
+    recycle_stats->last_recycle_time = g_current_time;
+    recycle_stats->total++;
     if (result == 0) {
-        recycle_counter->success++;
+        recycle_stats->success++;
         if (valid_count > 0) {
-            recycle_counter->force++;
+            recycle_stats->force++;
             if (context->config.va_policy.
                     sleep_us_when_recycle_valid_entries > 0)
             {

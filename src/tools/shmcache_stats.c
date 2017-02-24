@@ -112,6 +112,31 @@ static void stats_output(struct shmcache_context *context)
     printf("stats begin time: %s\n", formatDatetime(context->memory->stats.
                 init_time, "%Y-%m-%d %H:%M:%S",
                 time_buff, sizeof(time_buff)));
+
+    if (context->memory->stats.memory.recycle.key.last_recycle_time > 0) {
+        printf("last recycle by key time: %s\n", formatDatetime(
+                    context->memory->stats.memory.recycle.key.
+                    last_recycle_time, "%Y-%m-%d %H:%M:%S",
+                    time_buff, sizeof(time_buff)));
+    }
+    if (context->memory->stats.memory.recycle.value_striping.last_recycle_time > 0) {
+        printf("last recycle by value time: %s\n", formatDatetime(
+                    context->memory->stats.memory.recycle.value_striping.
+                    last_recycle_time, "%Y-%m-%d %H:%M:%S",
+                    time_buff, sizeof(time_buff)));
+    }
+    if (context->memory->stats.lock.last_detect_deadlock_time > 0) {
+        printf("last detect deadlock time: %s\n", formatDatetime(
+                    context->memory->stats.lock.
+                    last_detect_deadlock_time, "%Y-%m-%d %H:%M:%S",
+                    time_buff, sizeof(time_buff)));
+    }
+    if (context->memory->stats.lock.last_unlock_deadlock_time > 0) {
+        printf("last unlock deadlock time: %s\n", formatDatetime(
+                    context->memory->stats.lock.
+                    last_unlock_deadlock_time, "%Y-%m-%d %H:%M:%S",
+                    time_buff, sizeof(time_buff)));
+    }
     printf("\n");
 
     printf("\nhash table stats:\n");

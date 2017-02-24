@@ -118,6 +118,8 @@ static int shm_detect_deadlock(struct shmcache_context *context,
         } else {
             __sync_add_and_fetch(&context->memory->stats.
                             lock.unlock_deadlock, 1);
+            context->memory->stats.lock.
+                last_unlock_deadlock_time = get_current_time();
             logInfo("file: "__FILE__", line: %d, "
                     "my pid: %d, unlock deadlock by process: %d",
                     __LINE__, context->pid, last_pid);
@@ -148,6 +150,8 @@ int shm_lock(struct shmcache_context *context)
                 if (errno == ESRCH || errno == ENOENT) {
                     __sync_add_and_fetch(&context->memory->stats.
                             lock.detect_deadlock, 1);
+                    context->memory->stats.lock.
+                        last_detect_deadlock_time = get_current_time();
                     shm_detect_deadlock(context, pid);
                 }
             }

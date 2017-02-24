@@ -41,13 +41,13 @@ int shm_value_allocator_free(struct shmcache_context *context,
 recycle oldest hashtable entries
 parameters:
 	context: the shm context
-    recycle_counter: the recycle counter
+    recycle_stats: the recycle stats
     recycle_key_once: recycle key number once,
                        <= 0 for until recycle a value allocator
 return error no, 0 for success, != 0 fail
 */
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_counter *recycle_counter, const int recycle_key_once);
+        struct shm_recycle_stats *recycle_stats, const int recycle_key_once);
 
 static inline char *shm_get_value_ptr(struct shmcache_context *context,
         struct shm_hash_entry *entry)

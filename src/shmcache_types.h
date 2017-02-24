@@ -184,10 +184,11 @@ struct shm_counter {
     volatile int64_t success;
 };
 
-struct shm_recycle_counter {
+struct shm_recycle_stats {
     int64_t total;   //total count
     int64_t success; //succes count
     int64_t force;  //force recycle count (clear valid entries)
+    int64_t last_recycle_time;
 };
 
 struct shm_stats {
@@ -206,8 +207,8 @@ struct shm_stats {
         } clear_ht_entry;  //clear for recycle
 
         struct {
-            struct shm_recycle_counter key;
-            struct shm_recycle_counter value_striping;
+            struct shm_recycle_stats key;
+            struct shm_recycle_stats value_striping;
         } recycle;
     } memory;
 
@@ -216,6 +217,8 @@ struct shm_stats {
         volatile int64_t retry;
         volatile int64_t detect_deadlock;
         volatile int64_t unlock_deadlock;
+        int64_t last_detect_deadlock_time;
+        int64_t last_unlock_deadlock_time;
     } lock;
 
     //for calculate hit ratio
