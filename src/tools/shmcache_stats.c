@@ -91,7 +91,7 @@ static void stats_output(struct shmcache_context *context)
         total_ratio[0] = '-';
         total_ratio[1] = '\0';
     }
-    if (stats.hit.ratio > 0.00) {
+    if (stats.hit.ratio >= 0.00) {
         sprintf(ratio, "%.2f%%", stats.hit.ratio * 100.00);
     } else {
         ratio[0] = '-';
