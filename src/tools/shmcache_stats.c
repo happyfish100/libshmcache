@@ -102,14 +102,14 @@ static void stats_output(struct shmcache_context *context)
     }
 
     printf("\ntimestamp info:\n");
-    printf("init time: %s\n", formatDatetime(context->memory->init_time,
+    printf("shm init time: %s\n", formatDatetime(context->memory->init_time,
                 "%Y-%m-%d %H:%M:%S", time_buff, sizeof(time_buff)));
     if (context->memory->stats.hashtable.last_clear_time > 0) {
         printf("last clear time: %s\n", formatDatetime(context->memory->stats.
                     hashtable.last_clear_time, "%Y-%m-%d %H:%M:%S",
                     time_buff, sizeof(time_buff)));
     }
-    printf("stats start time: %s\n", formatDatetime(context->memory->stats.
+    printf("stats begin time: %s\n", formatDatetime(context->memory->stats.
                 init_time, "%Y-%m-%d %H:%M:%S",
                 time_buff, sizeof(time_buff)));
     printf("\n");
@@ -129,7 +129,7 @@ static void stats_output(struct shmcache_context *context)
             "last_clear_time: %"PRId64"\n"
             "get.qps: %.2f\n"
             "hit ratio (last %d seconds): %s\n"
-            "total hit ratio (since %d seconds): %s\n\n",
+            "total hit ratio (last %d seconds): %s\n\n",
             stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
