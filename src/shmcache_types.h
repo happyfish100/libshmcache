@@ -200,7 +200,6 @@ struct shm_stats {
     } hashtable;
 
     struct {
-
         struct {
             int64_t total;
             int64_t valid;
@@ -231,8 +230,8 @@ struct shm_stats {
 struct shm_memory_usage {
     int64_t alloced;
     struct {
-        int64_t common;
-        int64_t entry;
+        int64_t common; //first segment include hashtable
+        int64_t entry;  //whole entry include key and value
         int64_t key;
         int64_t value;
     } used;

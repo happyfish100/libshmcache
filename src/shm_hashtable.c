@@ -124,7 +124,7 @@ int shm_ht_set(struct shmcache_context *context,
         context->memory->hashtable.buckets[index] = new_offset;
     }
     context->memory->hashtable.count++;
-    context->memory->usage.used.entry += sizeof(struct shm_hash_entry);
+    context->memory->usage.used.value += value->length;
     context->memory->usage.used.key += new_entry->key_len;
     shm_list_add_tail(context, new_offset);
 
@@ -166,7 +166,7 @@ void shm_ht_free_entry(struct shmcache_context *context,
         bool *recycled)
 {
     context->memory->hashtable.count--;
-    context->memory->usage.used.entry -= sizeof(struct shm_hash_entry);
+    context->memory->usage.used.value -= entry->value.length;
     context->memory->usage.used.key -= entry->key_len;
     shm_list_delete(context, entry_offset);
     shm_value_allocator_free(context, entry, recycled);
@@ -232,9 +232,9 @@ int shm_ht_clear(struct shmcache_context *context)
         allocator_offset = (char *)allocator - context->segments.hashtable.base;
         shm_object_pool_push(&context->value_allocator.doing, allocator_offset);
     }
-    context->memory->usage.used.entry = 0;
     context->memory->usage.used.key = 0;
     context->memory->usage.used.value = 0;
+    context->memory->usage.used.entry = 0;
 
     logInfo("file: "__FILE__", line: %d, pid: %d, "
             "clear hashtable, %d entries be cleared!",

@@ -46,7 +46,7 @@ static struct shm_hash_entry *shm_value_allocator_do_alloc(struct shmcache_conte
         allocator = (struct shm_striping_allocator *)(context->segments.
                 hashtable.base + allocator_offset);
         if ((entry=shm_value_striping_alloc(context, allocator, size)) != NULL) {
-            context->memory->usage.used.value += size;
+            context->memory->usage.used.entry += size;
             return entry;
         }
 
@@ -231,7 +231,7 @@ int shm_value_allocator_free(struct shmcache_context *context,
 
     allocator = context->value_allocator.allocators + entry->memory.index.striping;
     used = shm_striping_allocator_free(allocator, entry->memory.size);
-    context->memory->usage.used.value -= entry->memory.size;
+    context->memory->usage.used.entry -= entry->memory.size;
     if (used <= 0) {
         if (used < 0) {
             logError("file: "__FILE__", line: %d, "
