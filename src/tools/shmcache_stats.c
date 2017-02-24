@@ -126,7 +126,6 @@ static void stats_output(struct shmcache_context *context)
             "get.success_count: %"PRId64"\n"
             "del.total_count: %"PRId64"\n"
             "del.success_count: %"PRId64"\n"
-            "last_clear_time: %"PRId64"\n"
             "get.qps: %.2f\n"
             "hit ratio (last %d seconds): %s\n"
             "total hit ratio (last %d seconds): %s\n\n",
@@ -141,7 +140,6 @@ static void stats_output(struct shmcache_context *context)
             stats.shm.hashtable.get.success,
             stats.shm.hashtable.del.total,
             stats.shm.hashtable.del.success,
-            (int64_t)stats.shm.hashtable.last_clear_time,
             stats.hit.get_qps, stats.hit.seconds, ratio,
             (int)(g_current_time - context->memory->stats.init_time), total_ratio);
 
