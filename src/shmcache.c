@@ -203,7 +203,8 @@ static int shmcache_do_lock_init(struct shmcache_context *context,
             break;
         }
 
-        context->memory->stats.last.calc_time = get_current_time();
+        context->memory->init_time = context->memory->stats.init_time =
+            context->memory->stats.last.calc_time = get_current_time();
         context->memory->usage.alloced = context->segments.hashtable.size;
         context->memory->usage.used.common = context->segments.hashtable.size;
         if ((result=shmopt_create_value_segment(context)) != 0) {
@@ -874,7 +875,13 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
 
 void shmcache_clear_stats(struct shmcache_context *context)
 {
+    shm_lock(context);
+
     memset(&context->memory->stats, 0, sizeof(context->memory->stats));
+    context->memory->stats.init_time =
+        context->memory->stats.last.calc_time = get_current_time();
+
+    shm_unlock(context);
 }
 
 const char *shmcache_get_serializer_label(const int serializer)

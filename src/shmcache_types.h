@@ -224,7 +224,7 @@ struct shm_stats {
         int64_t calc_time;
     } last;
 
-    char reserved[8];
+    int64_t init_time;   //init unix timestamp
 };
 
 struct shm_memory_usage {
@@ -240,6 +240,7 @@ struct shm_memory_usage {
 struct shm_memory_info {
     int size;    //sizeof(struct shm_memory_info)
     int status;
+    time_t init_time;   //init unix timestamp
     int max_key_count;
     struct shm_lock lock;
     struct shm_value_memory_info vm_info;  //value memory info

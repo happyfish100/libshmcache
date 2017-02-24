@@ -4,6 +4,7 @@
 #include <time.h>
 #include "logger.h"
 #include "shared_func.h"
+#include "sched_thread.h"
 #include "shmcache.h"
 
 static void stats_output(struct shmcache_context *context);
@@ -75,7 +76,9 @@ static void stats_output(struct shmcache_context *context)
     int avg_value_len;
     char total_ratio[32];
     char ratio[32];
+    char time_buff[32];
 
+    g_current_time = time(NULL);
     shmcache_stats(context, &stats);
     if (stats.hashtable.count > 0) {
         avg_key_len = stats.memory.usage.used.key / stats.hashtable.count;
@@ -98,6 +101,19 @@ static void stats_output(struct shmcache_context *context)
         ratio[1] = '\0';
     }
 
+    printf("\ntimestamp info:\n");
+    printf("init time: %s\n", formatDatetime(context->memory->init_time,
+                "%Y-%m-%d %H:%M:%S", time_buff, sizeof(time_buff)));
+    if (context->memory->stats.hashtable.last_clear_time > 0) {
+        printf("last clear time: %s\n", formatDatetime(context->memory->stats.
+                    hashtable.last_clear_time, "%Y-%m-%d %H:%M:%S",
+                    time_buff, sizeof(time_buff)));
+    }
+    printf("stats start time: %s\n", formatDatetime(context->memory->stats.
+                init_time, "%Y-%m-%d %H:%M:%S",
+                time_buff, sizeof(time_buff)));
+    printf("\n");
+
     printf("\nhash table stats:\n");
     printf("max_key_count: %d\n"
             "current_key_count: %d\n"
@@ -113,7 +129,7 @@ static void stats_output(struct shmcache_context *context)
             "last_clear_time: %"PRId64"\n"
             "get.qps: %.2f\n"
             "hit ratio (last %d seconds): %s\n"
-            "total hit ratio: %s\n\n",
+            "total hit ratio (since %d seconds): %s\n\n",
             stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
@@ -127,7 +143,7 @@ static void stats_output(struct shmcache_context *context)
             stats.shm.hashtable.del.success,
             (int64_t)stats.shm.hashtable.last_clear_time,
             stats.hit.get_qps, stats.hit.seconds, ratio,
-            total_ratio);
+            (int)(g_current_time - context->memory->stats.init_time), total_ratio);
 
     printf("\nmemory stats:\n");
     printf("total: %.03f MB\n"
