@@ -1,0 +1,49 @@
+Name: tsar-shmcache-module
+Version: 1.0.0
+Release: 1%{?dist}
+Summary: No Summary
+License: BSD
+Group: Arch/Tech
+URL:  http://github.com/happyfish100/libshmcache/
+Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
+
+BuildRequires: tsar-devel >= 2.1.1
+BuildRequires: libshmcache-devel >= 1.0.2
+Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
+Requires: tsar >= 2.1.1
+Requires: libshmcache >= 1.0.2
+
+%description
+tsar shmcache module
+
+%prep
+%setup -q
+
+%build
+make
+
+%install
+rm -rf %{buildroot}
+export PREFIX=$RPM_BUILD_ROOT
+make install
+
+%post
+mkdir -p /etc/tsar/conf.d/
+
+%preun
+
+%postun
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root,-)
+/usr/local/tsar/modules/mod_shmcache.so
+/etc/tsar/conf.d/shmcache.conf
+
+%changelog
+* Mon Feb 27 2017 Yu Qing <yuqing@yongche.com>
+- first RPM release (1.0)
