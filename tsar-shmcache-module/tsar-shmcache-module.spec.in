@@ -7,7 +7,7 @@ Group: Arch/Tech
 URL:  http://github.com/happyfish100/libshmcache/
 Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: tsar-devel >= 2.1.1
 BuildRequires: libshmcache-devel >= 1.0.2

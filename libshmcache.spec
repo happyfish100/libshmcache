@@ -46,6 +46,7 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 This package provides the header files of libshmcache
 
 %prep
+
 %setup -q
 
 %build
