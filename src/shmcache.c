@@ -831,7 +831,8 @@ int shmcache_remove_all(struct shmcache_context *context)
     return result;
 }
 
-void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *stats)
+void shmcache_stats_ex(struct shmcache_context *context, struct shmcache_stats *stats,
+        const bool calc_hit_ratio)
 {
     int64_t total_delta;
     int64_t success_delta;
@@ -847,27 +848,33 @@ void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *sta
     stats->hashtable.segment_size = context->segments.hashtable.size;
     stats->max_key_count = MAX_KEYS_IN_SHM(context);
 
-    if (!g_schedule_flag) {
-        g_current_time = time(NULL);
-    }
-    stats->hit.seconds = g_current_time - context->memory->stats.last.calc_time;
-    total_delta = context->memory->stats.hashtable.get.total
-        - context->memory->stats.last.get.total;
-    if (total_delta > 0) {
-        success_delta = context->memory->stats.hashtable.get.success
-            - context->memory->stats.last.get.success;
-        stats->hit.ratio = (double)success_delta / (double)total_delta;
-        if (stats->hit.seconds > 0) {
-            context->memory->stats.last.calc_time = g_current_time;
-            context->memory->stats.last.get.total =
-                context->memory->stats.hashtable.get.total;
-            context->memory->stats.last.get.success =
-                context->memory->stats.hashtable.get.success;
-            stats->hit.get_qps = (double)total_delta / (double)stats->hit.seconds;
+    if (calc_hit_ratio) {
+        if (!g_schedule_flag) {
+            g_current_time = time(NULL);
+        }
+        stats->hit.seconds = g_current_time - context->memory->stats.last.calc_time;
+        total_delta = context->memory->stats.hashtable.get.total
+            - context->memory->stats.last.get.total;
+        if (total_delta > 0) {
+            success_delta = context->memory->stats.hashtable.get.success
+                - context->memory->stats.last.get.success;
+            stats->hit.ratio = (double)success_delta / (double)total_delta;
+            if (stats->hit.seconds > 0) {
+                context->memory->stats.last.calc_time = g_current_time;
+                context->memory->stats.last.get.total =
+                    context->memory->stats.hashtable.get.total;
+                context->memory->stats.last.get.success =
+                    context->memory->stats.hashtable.get.success;
+                stats->hit.get_qps = (double)total_delta / (double)stats->hit.seconds;
+            } else {
+                stats->hit.get_qps = total_delta;
+            }
         } else {
-            stats->hit.get_qps = total_delta;
+            stats->hit.ratio = -1.00;
+            stats->hit.get_qps = 0.00;
         }
     } else {
+        stats->hit.seconds = 0;
         stats->hit.ratio = -1.00;
         stats->hit.get_qps = 0.00;
     }

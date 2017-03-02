@@ -150,9 +150,17 @@ get stats
 parameters:
 	context: the context pointer
     stats: return the stats
+    calc_hit_ratio: if calculate hit_ratio
 return none
 */
-void shmcache_stats(struct shmcache_context *context, struct shmcache_stats *stats);
+void shmcache_stats_ex(struct shmcache_context *context, struct shmcache_stats *stats,
+        const bool calc_hit_ratio);
+
+static inline void shmcache_stats(struct shmcache_context *context,
+        struct shmcache_stats *stats)
+{
+    shmcache_stats_ex(context, stats, true);
+}
 
 /**
 clear stats

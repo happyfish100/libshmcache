@@ -348,7 +348,7 @@ static PHP_METHOD(ShmCache, getExpires)
 
     returnExpired = false;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b",
-			&key_str, &key_len) == FAILURE)
+			&key_str, &key_len, &returnExpired) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"zend_parse_parameters fail!", __LINE__);
@@ -396,7 +396,7 @@ static PHP_METHOD(ShmCache, delete)
     RETURN_TRUE;
 }
 
-/* array ShmCache::stats()
+/* array ShmCache::stats([bool calc_hit_ratio = true])
  * return stats array
  */
 static PHP_METHOD(ShmCache, stats)
@@ -409,11 +409,21 @@ static PHP_METHOD(ShmCache, stats)
     zval *used_detail;
     zval *recycle;
     zval *lock;
+    zend_bool calc_hit_ratio;
 
     object = getThis();
 	i_obj = (php_shmcache_t *) shmcache_get_object(object);
 
-    shmcache_stats(i_obj->context, &stats);
+    calc_hit_ratio = true;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|b",
+			&calc_hit_ratio) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    shmcache_stats_ex(i_obj->context, &stats, calc_hit_ratio);
     array_init(return_value);
 
     {
