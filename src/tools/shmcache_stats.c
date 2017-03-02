@@ -76,6 +76,7 @@ static void stats_output(struct shmcache_context *context)
     int avg_value_len;
     char total_ratio[32];
     char ratio[32];
+    char rw_ratio[32];
     char time_buff[32];
 
     g_current_time = time(NULL);
@@ -99,6 +100,13 @@ static void stats_output(struct shmcache_context *context)
     } else {
         ratio[0] = '-';
         ratio[1] = '\0';
+    }
+    if (stats.shm.hashtable.set.total > 0) {
+        sprintf(rw_ratio, "%.2f / 1.00", stats.shm.hashtable.get.total
+                / (double)stats.shm.hashtable.set.total);
+    } else {
+        rw_ratio[0] = '-';
+        rw_ratio[1] = '\0';
     }
 
     printf("\ntimestamp info:\n");
@@ -153,7 +161,8 @@ static void stats_output(struct shmcache_context *context)
             "del.success_count: %"PRId64"\n"
             "get.qps: %.2f\n"
             "hit ratio (last %d seconds): %s\n"
-            "total hit ratio (last %d seconds): %s\n\n",
+            "total hit ratio (last %d seconds): %s\n"
+            "total RW ratio: %s\n\n",
             stats.max_key_count,
             stats.hashtable.count,
             (double)stats.hashtable.segment_size / (1024 * 1024),
@@ -166,7 +175,8 @@ static void stats_output(struct shmcache_context *context)
             stats.shm.hashtable.del.total,
             stats.shm.hashtable.del.success,
             stats.hit.get_qps, stats.hit.seconds, ratio,
-            (int)(g_current_time - context->memory->stats.init_time), total_ratio);
+            (int)(g_current_time - context->memory->stats.init_time),
+            total_ratio, rw_ratio);
 
     printf("\nmemory stats:\n");
     printf("total: %.03f MB\n"
