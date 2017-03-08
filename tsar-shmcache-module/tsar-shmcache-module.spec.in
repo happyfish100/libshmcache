@@ -1,5 +1,5 @@
 Name: tsar-shmcache-module
-Version: 1.0.0
+Version: 1.0.1
 Release: 1%{?dist}
 Summary: No Summary
 License: BSD
@@ -10,10 +10,10 @@ Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: tsar-devel >= 2.1.1
-BuildRequires: libshmcache-devel >= 1.0.2
+BuildRequires: libshmcache-devel >= 1.0.3
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
 Requires: tsar >= 2.1.1
-Requires: libshmcache >= 1.0.2
+Requires: libshmcache >= 1.0.3
 
 %description
 tsar shmcache module

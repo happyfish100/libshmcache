@@ -698,6 +698,23 @@ int shmcache_init_from_file_ex(struct shmcache_context *context,
 
 void shmcache_destroy(struct shmcache_context *context)
 {
+    int index;
+
+    for (index=0; index < context->segments.values.count; index++) {
+        if (context->segments.values.items[index].base != NULL) {
+            shm_munmap(context->config.type,
+                    context->segments.values.items[index].base,
+                    context->segments.values.items[index].size);
+            context->segments.values.items[index].base = NULL;
+        }
+    }
+
+    if (context->segments.hashtable.base != NULL) {
+        shm_munmap(context->config.type,
+                context->segments.hashtable.base,
+                context->segments.hashtable.size);
+        context->segments.hashtable.base = NULL;
+    }
 }
 
 int shmcache_set_ex(struct shmcache_context *context,

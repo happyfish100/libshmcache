@@ -88,6 +88,7 @@ static void read_shmcache_stats(struct module *mod, const char *parameter)
     log_init();
     if (shmcache_init_from_file_ex(&context, config_filename, false, true) == 0) {
         shmcache_stats_ex(&context, &stats, false);
+        shmcache_destroy(&context);
     } else {
         memset(&stats, 0, sizeof(stats));
     }
