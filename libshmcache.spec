@@ -5,7 +5,7 @@
 %define LibShmcacheDebuginfo  libshmcache-debuginfo
 
 Name: libshmcache
-Version: 1.0.3
+Version: 1.0.4
 Release: 1%{?dist}
 Summary: a high performance local share memory cache for multi processes
 License: LGPL
