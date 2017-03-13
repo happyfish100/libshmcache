@@ -38,6 +38,7 @@
 
 struct shmcache_config {
     char filename[MAX_PATH_SIZE];
+    int64_t min_memory;
     int64_t max_memory;
     int64_t segment_size;
     int max_key_count;

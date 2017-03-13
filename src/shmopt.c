@@ -126,6 +126,7 @@ int shmopt_open_value_segments(struct shmcache_context *context)
         }
         context->segments.values.count++;
     }
+
     return 0;
 }
 

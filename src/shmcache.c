@@ -418,6 +418,25 @@ int shmcache_init(struct shmcache_context *context,
             }
         }
         result = shmopt_open_value_segments(context);
+        if (result == 0 && context->memory->vm_info.segment.count.current <
+                context->memory->vm_info.segment.count.max)
+        {
+            shm_lock(context);
+            while (context->segments.hashtable.size +
+                context->memory->vm_info.segment.size *
+                context->memory->vm_info.segment.count.current < config->min_memory)
+            {
+                if ((result=shmopt_create_value_segment(context)) != 0) {
+                    break;
+                }
+                if (context->memory->vm_info.segment.count.current >=
+                        context->memory->vm_info.segment.count.max)
+                {
+                    break;
+                }
+            }
+            shm_unlock(context);
+        }
     }
 
     if (context->config.lock_policy.trylock_interval_us > 0) {
@@ -500,7 +519,7 @@ int shmcache_init(struct shmcache_context *context,
     return result;
 }
 
-int64_t shmcache_parse_bytes(IniContext *iniContext,
+static int64_t shmcache_parse_bytes(IniContext *iniContext,
         const char *config_filename, const char *name, int *result)
 {
     char *value;
@@ -527,6 +546,23 @@ int64_t shmcache_parse_bytes(IniContext *iniContext,
     return size;
 }
 
+static int64_t shmcache_parse_bytes_with_default(IniContext *iniContext,
+        const char *config_filename, const char *name,
+        const int64_t def_value, int *result)
+{
+    char *value;
+    int64_t size;
+
+    value = iniGetStrValue(NULL, name, iniContext);
+    if (value == NULL) {
+        *result = 0;
+        return def_value;
+    }
+    if ((*result=parse_bytes(value, 1, &size)) != 0) {
+        return def_value;
+    }
+    return size;
+}
 
 int shmcache_load_config(struct shmcache_config *config,
 		const char *config_filename)
@@ -565,6 +601,9 @@ int shmcache_load_config(struct shmcache_config *config,
         if (result != 0) {
             break;
         }
+
+        config->min_memory = shmcache_parse_bytes_with_default(&iniContext,
+                config_filename, "min_memory", 0, &result);
 
         config->segment_size = shmcache_parse_bytes(&iniContext,
                 config_filename, "segment_size", &result);
