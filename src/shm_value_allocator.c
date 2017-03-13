@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include "sched_thread.h"
+#include "shared_func.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
 #include "shm_list.h"
@@ -98,6 +99,7 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
         struct shm_recycle_stats *recycle_stats, const int recycle_keys_once)
 {
     int64_t entry_offset;
+    int64_t start_time;
     struct shm_hash_entry *entry;
     struct shmcache_key_info key;
     int result;
@@ -109,7 +111,8 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
 
     result = ENOMEM;
     clear_count = valid_count = 0;
-    g_current_time = time(NULL);
+    start_time = get_current_time_us();
+    g_current_time = start_time / 1000000;
     recycled = false;
     while ((entry_offset=shm_list_first(context)) > 0) {
         entry = shm_get_hentry_ptr(context, entry_offset);
@@ -142,8 +145,10 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
             logInfo("file: "__FILE__", line: %d, "
                     "recycle #%d striping memory, "
                     "clear total entries: %d, "
-                    "clear valid entries: %d", __LINE__,
-                    index, clear_count, valid_count);
+                    "clear valid entries: %d, "
+                    "time used: %"PRId64" us", __LINE__,
+                    index, clear_count, valid_count,
+                    get_current_time_us() - start_time);
             result = 0;
             break;
         }
@@ -171,8 +176,10 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
         logError("file: "__FILE__", line: %d, "
                 "unable to recycle memory, "
                 "clear total entries: %d, "
-                "cleared valid entries: %d",
-                __LINE__, clear_count, valid_count);
+                "cleared valid entries: %d, "
+                "time used: %"PRId64" us", __LINE__,
+                __LINE__, clear_count, valid_count,
+                get_current_time_us() - start_time);
     }
     return result;
 }
