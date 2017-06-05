@@ -6,7 +6,7 @@
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: libshmcache
-Version: 1.0.4
+Version: 1.0.5
 Release: 1%{?dist}
 Summary: a high performance local share memory cache for multi processes
 License: LGPL
