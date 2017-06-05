@@ -12,7 +12,10 @@ for ($i=0; $i<10240; $i++) {
 }
 
 echo "key $key expires: " . $cache->getExpires($key) . "\n";
-var_dump($cache->setExpires($key, 600));
+var_dump($cache->setExpires($key, time() + 600));
+echo "key $key expires: " . $cache->getExpires($key) . "\n";
+
+var_dump($cache->setTTL($key, 900));
 echo "key $key expires: " . $cache->getExpires($key) . "\n";
 
 $key1 = 'key_00002';

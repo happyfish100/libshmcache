@@ -100,15 +100,27 @@ int shmcache_set(struct shmcache_context *context,
         const char *data, const int data_len, const int ttl);
 
 /**
-set expires
+set TTL
 parameters:
 	context: the context pointer
     key: the key
     ttl: the time to live in seconds
 return error no, 0 for success, != 0 for fail
 */
-int shmcache_set_expires(struct shmcache_context *context,
+int shmcache_set_ttl(struct shmcache_context *context,
         const struct shmcache_key_info *key, const int ttl);
+
+
+/**
+set expires timestamp
+parameters:
+	context: the context pointer
+    key: the key
+    expires: the expires timestamp
+return error no, 0 for success, != 0 for fail
+*/
+int shmcache_set_expires(struct shmcache_context *context,
+        const struct shmcache_key_info *key, const int expires);
 
 /**
 increase integer value

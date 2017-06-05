@@ -95,12 +95,21 @@ long ShmCache::getExpires(string $key[, boolean $returnExpired = false])
   * @return expires timestamps such as 1483952635, 0 for never expired, false for not exist
   * @example: $value = $cache->getExpires($key);
 
-boolean ShmCache::setExpires(string $key, long $ttl)
+boolean ShmCache::setExpires(string $key, long $expires)
+  * @param key: the key, must be a string variable
+  * @param expires: expires timestamp (unix timestamp eg. 1591347245)
+    ShmCache::NEVER_EXPIRED for never expired
+  * @return true for success, false for key not exist or expired or other error
+  * @throws ShmCacheException if $expires is invalid
+  * @example: $cache->setExpires($key, 1591347245);
+
+boolean ShmCache::setTTL(string $key, long $ttl)
   * @param key: the key, must be a string variable
   * @param ttl: timeout / expire in seconds, such as 600 for ten minutes,
     ShmCache::NEVER_EXPIRED for never expired
   * @return true for success, false for key not exist or expired or other error
-  * @example: $cache->setExpires($key, 300);
+  * @throws ShmCacheException if $ttl is invalid
+  * @example: $cache->setTTL($key, 300);
 
 boolean ShmCache::delete(string $key)
   * @param key: the key, must be a string variable

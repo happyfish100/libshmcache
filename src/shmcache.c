@@ -816,15 +816,33 @@ int shmcache_delete(struct shmcache_context *context,
     return result;
 }
 
-int shmcache_set_expires(struct shmcache_context *context,
+int shmcache_set_ttl(struct shmcache_context *context,
         const struct shmcache_key_info *key, const int ttl)
 {
     int result;
+    if (ttl < 0) {
+        return EINVAL;
+    }
     if ((result=shm_lock(context)) != 0) {
         return result;
     }
     result = shm_ht_set_expires(context, key,
             HT_CALC_EXPIRES(get_current_time(), ttl));
+    shm_unlock(context);
+    return result;
+}
+
+int shmcache_set_expires(struct shmcache_context *context,
+        const struct shmcache_key_info *key, const int expires)
+{
+    int result;
+    if (expires > 0 && expires < get_current_time()) {
+        return EINVAL;
+    }
+    if ((result=shm_lock(context)) != 0) {
+        return result;
+    }
+    result = shm_ht_set_expires(context, key, expires);
     shm_unlock(context);
     return result;
 }
