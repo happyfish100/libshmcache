@@ -816,6 +816,19 @@ int shmcache_delete(struct shmcache_context *context,
     return result;
 }
 
+int shmcache_set_expires(struct shmcache_context *context,
+        const struct shmcache_key_info *key, const int ttl)
+{
+    int result;
+    if ((result=shm_lock(context)) != 0) {
+        return result;
+    }
+    result = shm_ht_set_expires(context, key,
+            HT_CALC_EXPIRES(get_current_time(), ttl));
+    shm_unlock(context);
+    return result;
+}
+
 int shmcache_incr(struct shmcache_context *context,
         const struct shmcache_key_info *key,
         const int64_t increment,

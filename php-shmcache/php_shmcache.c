@@ -240,6 +240,40 @@ static PHP_METHOD(ShmCache, set)
     RETURN_TRUE;
 }
 
+/* boolean ShmCache::setExpires(string key, long ttl)
+ * return true for success, false for fail
+ */
+static PHP_METHOD(ShmCache, setExpires)
+{
+	zval *object;
+	php_shmcache_t *i_obj;
+    struct shmcache_key_info key;
+    char *key_str;
+    zend_size_t key_len;
+    long ttl;
+    int result;
+
+    object = getThis();
+	i_obj = (php_shmcache_t *) shmcache_get_object(object);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl",
+			&key_str, &key_len, &ttl) == FAILURE)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"zend_parse_parameters fail!", __LINE__);
+		RETURN_FALSE;
+	}
+
+    key.data = key_str;
+    key.length = key_len;
+    result = shmcache_set_expires(i_obj->context, &key, ttl);
+    if (result != 0) {
+		RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 /* long ShmCache::incr(string key, long increment, long ttl)
  * return the value after increase, false for fail
  */
@@ -577,6 +611,11 @@ ZEND_ARG_INFO(0, value)
 ZEND_ARG_INFO(0, ttl)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_setExpires, 0, 0, 2)
+ZEND_ARG_INFO(0, key)
+ZEND_ARG_INFO(0, ttl)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_incr, 0, 0, 3)
 ZEND_ARG_INFO(0, key)
 ZEND_ARG_INFO(0, increment)
@@ -607,6 +646,7 @@ ZEND_END_ARG_INFO()
 static zend_function_entry shmcache_class_methods[] = {
     SHMC_ME(__construct,  arginfo___construct)
     SHMC_ME(set,          arginfo_set)
+    SHMC_ME(setExpires,   arginfo_setExpires)
     SHMC_ME(incr,         arginfo_incr)
     SHMC_ME(get,          arginfo_get)
     SHMC_ME(getExpires,   arginfo_getExpires)

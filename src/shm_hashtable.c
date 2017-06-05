@@ -207,6 +207,35 @@ int shm_ht_delete_ex(struct shmcache_context *context,
     return result;
 }
 
+int shm_ht_set_expires(struct shmcache_context *context,
+        const struct shmcache_key_info *key, const time_t expires)
+{
+    int result;
+    unsigned int index;
+    int64_t entry_offset;
+    struct shm_hash_entry *entry;
+
+    result = ENOENT;
+    index = HT_GET_BUCKET_INDEX(context, key);
+    entry_offset = context->memory->hashtable.buckets[index];
+    while (entry_offset > 0) {
+        entry = shm_get_hentry_ptr(context, entry_offset);
+        if (HT_KEY_EQUALS(entry, key)) {
+            if (HT_ENTRY_IS_VALID(entry, get_current_time())) {
+                entry->expires = expires;
+                result = 0;
+            } else {
+                result = ETIMEDOUT;
+            }
+            break;
+        }
+
+        entry_offset = entry->ht_next;
+    }
+
+    return result;
+}
+
 int shm_ht_clear(struct shmcache_context *context)
 {
     struct shm_striping_allocator *allocator;
