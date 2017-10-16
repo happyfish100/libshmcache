@@ -41,7 +41,7 @@ static struct shmcache_context *shmcache_get_context(const char *filename,
         char *error_info, const int error_size);
 
 #if PHP_MAJOR_VERSION < 7
-#define shmcache_get_object(obj) zend_object_store_get_object(obj)
+#define shmcache_get_object(obj) zend_object_store_get_object(obj TSRMLS_CC)
 #else
 #define shmcache_get_object(obj) (void *)((char *)(Z_OBJ_P(obj)) - XtOffsetOf(php_shmcache_t, zo))
 #endif
