@@ -6,7 +6,7 @@
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: libshmcache
-Version: 1.0.5
+Version: 1.0.6
 Release: 1%{?dist}
 Summary: a high performance local share memory cache for multi processes
 License: LGPL
@@ -16,10 +16,10 @@ Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
-BuildRequires: libfastcommon-devel >= 1.0.35
+BuildRequires: libfastcommon-devel >= 1.0.38
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-Requires: libfastcommon >= 1.0.35
+Requires: libfastcommon >= 1.0.38
 
 %description
 libshmcache is a local share memory cache for multi processes.
