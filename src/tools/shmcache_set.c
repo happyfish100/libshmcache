@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "logger.h"
-#include "shared_func.h"
-#include "shmcache.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
+#include "shmcache/shmcache.h"
 
 static void usage(const char *prog)
 {

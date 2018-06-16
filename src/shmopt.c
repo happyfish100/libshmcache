@@ -2,7 +2,7 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "shm_op_wrapper.h"
 #include "shm_striping_allocator.h"
 #include "shm_object_pool.h"

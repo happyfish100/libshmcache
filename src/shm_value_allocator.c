@@ -1,8 +1,9 @@
 //shm_value_allocator.c
 
 #include <errno.h>
-#include "sched_thread.h"
-#include "shared_func.h"
+#include <assert.h>
+#include "fastcommon/sched_thread.h"
+#include "fastcommon/shared_func.h"
 #include "shm_object_pool.h"
 #include "shm_striping_allocator.h"
 #include "shm_list.h"
@@ -96,39 +97,53 @@ static int shm_value_allocator_do_recycle(struct shmcache_context *context,
 }
 
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_stats *recycle_stats, const int recycle_keys_once)
+        struct shm_recycle_stats *recycle_stats,
+        const int recycle_keys_once)
 {
     int64_t entry_offset;
+    int64_t current_offset;
     int64_t start_time;
     struct shm_hash_entry *entry;
     struct shmcache_key_info key;
     int result;
     int index;
+    int scan_count;
     int clear_count;
     int valid_count;
     bool valid;
     bool recycled;
+    char buff[32];
 
     result = ENOMEM;
-    clear_count = valid_count = 0;
+    scan_count = clear_count = valid_count = 0;
     start_time = get_current_time_us();
     g_current_time = start_time / 1000000;
     recycled = false;
-    while ((entry_offset=shm_list_first(context)) > 0) {
+    entry_offset = shm_list_first(context);
+    while (entry_offset > 0) {
+        scan_count++;
         entry = shm_get_hentry_ptr(context, entry_offset);
         index = entry->memory.index.striping;
         key.data = entry->key;
         key.length = entry->key_len;
         valid = HT_ENTRY_IS_VALID(entry, g_current_time);
+        if (valid && !context->config.recycle_valid_entries) {
+            entry_offset = shm_list_next(context, entry_offset);
+            continue;
+        }
+
+        current_offset = entry_offset;
+        entry_offset = shm_list_next(context, entry_offset);
+
         if (shm_ht_delete_ex(context, &key, &recycled) != 0) {
             logError("file: "__FILE__", line: %d, "
                     "shm_ht_delete fail, index: %d, "
                     "entry offset: %"PRId64", "
                     "key: %.*s, key length: %d", __LINE__,
-                    index, entry_offset, entry->key_len,
+                    index, current_offset, entry->key_len,
                     entry->key, entry->key_len);
 
-            shm_ht_free_entry(context, entry, entry_offset, &recycled);
+            shm_ht_free_entry(context, entry, current_offset, &recycled);
         }
 
         clear_count++;
@@ -142,13 +157,13 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
                 break;
             }
         } else if (recycled) {
+            long_to_comma_str(get_current_time_us() - start_time, buff);
             logInfo("file: "__FILE__", line: %d, "
                     "recycle #%d striping memory, "
-                    "clear total entries: %d, "
+                    "scan entries: %d, clear total entries: %d, "
                     "clear valid entries: %d, "
-                    "time used: %"PRId64" us", __LINE__,
-                    index, clear_count, valid_count,
-                    get_current_time_us() - start_time);
+                    "time used: %s us", __LINE__, index,
+                    scan_count, clear_count, valid_count, buff);
             result = 0;
             break;
         }
@@ -173,14 +188,70 @@ int shm_value_allocator_recycle(struct shmcache_context *context,
             }
         }
     } else {
+        long_to_comma_str(get_current_time_us() - start_time, buff);
         logError("file: "__FILE__", line: %d, "
                 "unable to recycle memory, "
-                "clear total entries: %d, "
+                "scan entries: %d, clear total entries: %d, "
                 "cleared valid entries: %d, "
-                "time used: %"PRId64" us", __LINE__,
-                __LINE__, clear_count, valid_count,
-                get_current_time_us() - start_time);
+                "time used: %s us", __LINE__, scan_count,
+                clear_count, valid_count, buff);
     }
+    return result;
+}
+
+static int shm_value_allocator_try_rearrange(struct shmcache_context *context)
+{
+    int64_t used;
+    int64_t free;
+    int64_t start_time;
+    int result;
+    struct shmcache_hentry_array array;
+    struct shmcache_hash_entry *entry;
+    struct shmcache_hash_entry *end;
+
+    used = context->memory->usage.used.common + context->memory->usage.used.entry;
+    free = context->memory->usage.alloced - used;
+    if (free < (SHMCACHE_MAX_KEY_SIZE + context->config.max_value_size) +
+            (context->memory->vm_info.striping.count.current *
+            context->config.va_policy.discard_memory_size) +
+            context->memory->vm_info.striping.size)
+    {
+        return ENOSPC;
+    }
+
+    start_time = get_current_time_us();
+    logInfo("file: "__FILE__", line: %d, "
+            "try rearrange shm, key count: %d",
+            __LINE__, context->memory->hashtable.count);
+
+    if ((result=shm_ht_to_array(context, &array)) != 0) {
+        return result;
+    }
+
+    if (shm_ht_clear(context) > 0) {
+        if (context->config.va_policy.sleep_us_when_recycle_valid_entries > 0) {
+            usleep(context->config.va_policy.sleep_us_when_recycle_valid_entries);
+        }
+    }
+
+    end = array.entries + array.count;
+    for (entry=array.entries; entry<end; entry++) {
+        if ((result=shm_ht_set(context, &entry->key, &entry->value)) != 0) {
+            break;
+        }
+    }
+
+    if (result == 0) {
+        char buff[32];
+        long_to_comma_str(get_current_time_us() - start_time, buff);
+        logInfo("file: "__FILE__", line: %d, "
+                "rearrange shm done, key count: %d, time used: %s us",
+                __LINE__, context->memory->hashtable.count, buff);
+    } else {
+        shm_ht_clear(context);
+    }
+
+    shm_ht_free_array(&array);
     return result;
 }
 
@@ -218,6 +289,22 @@ struct shm_hash_entry *shm_value_allocator_alloc(struct shmcache_context *contex
     if (recycle ) {
         result = shm_value_allocator_recycle(context,
                 &context->memory->stats.memory.recycle.value_striping, -1);
+
+        if (result != 0 && !context->config.recycle_valid_entries) {
+            if (context->memory->vm_info.segment.count.current <
+                    context->memory->vm_info.segment.count.max)
+            {
+                result = shmopt_create_value_segment(context);
+            } else {
+                result = shm_value_allocator_try_rearrange(context);
+                if (result != 0) {
+                    logError("file: "__FILE__", line: %d, "
+                            "try rearrange shm fail, "
+                            "errno: %d, error info: %s",
+                            __LINE__, result, strerror(result));
+                }
+            }
+        }
     } else {
         result = shmopt_create_value_segment(context);
     }

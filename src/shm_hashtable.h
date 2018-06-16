@@ -9,7 +9,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/shm.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "shmcache_types.h"
 #include "shm_list.h"
 #include "shm_value_allocator.h"
@@ -91,6 +91,26 @@ return error no, 0 for success, != 0 for fail
 */
 int shm_ht_delete_ex(struct shmcache_context *context,
         const struct shmcache_key_info *key, bool *recycled);
+
+/**
+hashtable entry to array
+parameters:
+	context: the context pointer
+    array: the array, should call shm_ht_free_array after use
+return error no, 0 for success, != 0 for fail
+*/
+int shm_ht_to_array(struct shmcache_context *context,
+        struct shmcache_hentry_array *array);
+
+/**
+free the array return by shm_ht_to_array
+parameters:
+	context: the context pointer
+    array: the array to free
+return none
+*/
+void shm_ht_free_array(struct shmcache_hentry_array *array);
+
 
 /**
 delete the key

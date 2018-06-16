@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "shmcache_types.h"
 #include "shmopt.h"
 
@@ -47,7 +47,8 @@ parameters:
 return error no, 0 for success, != 0 fail
 */
 int shm_value_allocator_recycle(struct shmcache_context *context,
-        struct shm_recycle_stats *recycle_stats, const int recycle_key_once);
+        struct shm_recycle_stats *recycle_stats,
+        const int recycle_keys_once);
 
 static inline char *shm_get_value_ptr(struct shmcache_context *context,
         struct shm_hash_entry *entry)

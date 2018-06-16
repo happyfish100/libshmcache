@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o
 
 COMPILE = $(CC) -g -O1 -Wall -D_FILE_OFFSET_BITS=64 -g -DDEBUG_FLAG
-INC_PATH = -I/usr/include/fastcommon -I/usr/include/shmcache
+INC_PATH = -I/usr/local/include
 LIB_PATH = -lfastcommon -lshmcache -lpthread -ldl
 
 ALL_PRGS = tests

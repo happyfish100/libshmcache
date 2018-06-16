@@ -2,7 +2,7 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "shm_object_pool.h"
 
 void shm_object_pool_set(struct shmcache_object_pool_context *op,

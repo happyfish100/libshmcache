@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "logger.h"
-#include "shared_func.h"
-#include "sched_thread.h"
-#include "shmcache.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/sched_thread.h"
+#include "shmcache/shmcache.h"
 
 static void stats_output(struct shmcache_context *context);
 

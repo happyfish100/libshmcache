@@ -9,8 +9,8 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/shm.h>
-#include "hash.h"
-#include "common_define.h"
+#include "fastcommon/common_define.h"
+#include "fastcommon/hash.h"
 
 #define SHMCACHE_MAJOR_VERSION  1
 #define SHMCACHE_MINOR_VERSION  0
@@ -46,6 +46,8 @@ struct shmcache_config {
     int type;  //shm or mmap
 
     int recycle_key_once;  //recycle key number once when reach max keys
+
+    bool recycle_valid_entries;  //if recycle valid entries by FIFO
 
     struct {
         /* avg. key TTL threshold for recycling memory
@@ -264,6 +266,16 @@ struct shmcache_value_info {
     int length;
     int options;    //options for application
     time_t expires; //expire time
+};
+
+struct shmcache_hash_entry {
+    struct shmcache_key_info key;
+    struct shmcache_value_info value;
+};
+
+struct shmcache_hentry_array {
+    struct shmcache_hash_entry *entries;
+    int count;
 };
 
 struct shmcache_segment_info {

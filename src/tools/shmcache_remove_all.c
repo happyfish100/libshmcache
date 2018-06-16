@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "logger.h"
-#include "shmcache.h"
-#include "shmopt.h"
+#include "fastcommon/logger.h"
+#include "shmcache/shmcache.h"
+#include "shmcache/shmopt.h"
 
 static void usage(const char *prog)
 {

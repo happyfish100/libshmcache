@@ -1,7 +1,7 @@
 //shm_striping_allocator.c
 
 #include <errno.h>
-#include "sched_thread.h"
+#include "fastcommon/sched_thread.h"
 #include "shm_striping_allocator.h"
 
 void shm_striping_allocator_init(struct shm_striping_allocator *allocator,

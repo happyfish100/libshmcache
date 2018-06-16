@@ -139,7 +139,7 @@ void shmcache_free_serialize_output(struct shmcache_serialize_output *output)
 
 int shmcache_unserialize(struct shmcache_value_info *value, zval *rv)
 {
-    char buff[20];
+    char buff[32];
     int len;
 
     switch (value->options) {

@@ -9,7 +9,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <sys/shm.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "shmcache_types.h"
 #include "shm_hashtable.h"
 

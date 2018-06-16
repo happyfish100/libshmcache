@@ -4,9 +4,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "logger.h"
-#include "shared_func.h"
-#include "sched_thread.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/sched_thread.h"
 #include "shm_hashtable.h"
 #include "shm_lock.h"
 

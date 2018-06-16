@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "common_define.h"
-#include "logger.h"
+#include "fastcommon/common_define.h"
+#include "fastcommon/logger.h"
 #include "shmcache_types.h"
 
 #ifdef __cplusplus

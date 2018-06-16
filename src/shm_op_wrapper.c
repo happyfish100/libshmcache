@@ -7,8 +7,8 @@
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include "logger.h"
-#include "shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
 #include "shm_op_wrapper.h"
 
 #define SHM_GET_MMAP_FILENAME(true_filename, filename, proj_id) \

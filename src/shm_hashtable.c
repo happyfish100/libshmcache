@@ -2,9 +2,9 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include "logger.h"
-#include "shared_func.h"
-#include "sched_thread.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/sched_thread.h"
 #include "shmopt.h"
 #include "shm_lock.h"
 #include "shm_object_pool.h"
@@ -269,4 +269,91 @@ int shm_ht_clear(struct shmcache_context *context)
             "clear hashtable, %d entries be cleared!",
             __LINE__, context->pid, ht_count);
     return ht_count;
+}
+
+int shm_ht_to_array(struct shmcache_context *context,
+        struct shmcache_hentry_array *array)
+{
+    int64_t entry_offset;
+    struct shm_hash_entry *src;
+    struct shmcache_hash_entry *dest;
+    char *value_data;
+    int bytes;
+
+    if (context->memory->hashtable.count == 0) {
+        array->count = 0;
+        array->entries = NULL;
+        return 0;
+    }
+
+    bytes = sizeof(struct shmcache_hash_entry) * context->memory->hashtable.count;
+    array->entries = (struct shmcache_hash_entry *)malloc(bytes);
+    if (array->entries == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail", __LINE__, bytes);
+        array->count = 0;
+        return ENOMEM;
+    }
+
+    memset(array->entries, 0, bytes);
+    array->count = 0;
+    dest = array->entries;
+
+    entry_offset = shm_list_first(context);
+    while (entry_offset > 0) {
+        if (array->count == context->memory->hashtable.count) {
+            logError("file: "__FILE__", line: %d, "
+                    "exceeds hash table count: %d",
+                    __LINE__, context->memory->hashtable.count);
+            shm_ht_free_array(array);
+            return EFAULT;
+        }
+
+        src = shm_get_hentry_ptr(context, entry_offset);
+
+        bytes = src->key_len + src->value.length;
+        dest->key.data = (char *)malloc(bytes);
+        if (dest->key.data == NULL) {
+            logError("file: "__FILE__", line: %d, "
+                    "malloc %d bytes fail", __LINE__, bytes);
+            shm_ht_free_array(array);
+            return ENOMEM;
+        }
+
+        dest->key.length = src->key_len;
+        memcpy(dest->key.data, src->key, src->key_len);
+
+        value_data = shm_get_value_ptr(context, src);
+        dest->value.length = src->value.length;
+        dest->value.options = src->value.options;
+        dest->value.expires = src->expires;
+
+        dest->value.data = dest->key.data + src->key_len;
+        memcpy(dest->value.data, value_data, src->value.length);
+
+        entry_offset = shm_list_next(context, entry_offset);
+        dest++;
+        array->count++;
+    }
+
+    return 0;
+}
+
+void shm_ht_free_array(struct shmcache_hentry_array *array)
+{
+    struct shmcache_hash_entry *entry;
+    struct shmcache_hash_entry *end;
+
+    if (array->entries == NULL) {
+        return;
+    }
+
+    end = array->entries + array->count;
+    for (entry=array->entries; entry<end; entry++) {
+        free(entry->key.data);
+    }
+
+    free(array->entries);
+    array->entries = NULL;
+    array->count = 0;
 }
