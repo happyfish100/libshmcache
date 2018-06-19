@@ -279,6 +279,7 @@ int shm_ht_to_array(struct shmcache_context *context,
     struct shmcache_hash_entry *dest;
     char *value_data;
     int bytes;
+    int current_time;
 
     if (context->memory->hashtable.count == 0) {
         array->count = 0;
@@ -298,6 +299,7 @@ int shm_ht_to_array(struct shmcache_context *context,
     memset(array->entries, 0, bytes);
     array->count = 0;
     dest = array->entries;
+    current_time = time(NULL);
 
     entry_offset = shm_list_first(context);
     while (entry_offset > 0) {
@@ -310,6 +312,10 @@ int shm_ht_to_array(struct shmcache_context *context,
         }
 
         src = shm_get_hentry_ptr(context, entry_offset);
+        if (!HT_ENTRY_IS_VALID(src, current_time)) {
+            entry_offset = shm_list_next(context, entry_offset);
+            continue;
+        }
 
         bytes = src->key_len + src->value.length;
         dest->key.data = (char *)malloc(bytes);

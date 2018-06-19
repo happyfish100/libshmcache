@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o .lo
 
 COMPILE = $(CC) -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -O3
-INC_PATH = -I/usr/include/fastcommon
+INC_PATH = -I/usr/local/include
 LIB_PATH = -lm -lpthread -lfastcommon
 
 SHMCACHE_SHARED_OBJS = shmcache.lo shmopt.lo shm_striping_allocator.lo shm_object_pool.lo \
