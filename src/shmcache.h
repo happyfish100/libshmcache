@@ -209,9 +209,30 @@ return error no, 0 for success, != 0 for fail
 */
 int shmcache_clear(struct shmcache_context *context);
 
+/**
+get last clear time
+parameters:
+	context: the context pointer
+return last clear time
+*/
+static inline int64_t shmcache_get_last_clear_time(struct shmcache_context *context)
+{
+    return context->memory->stats.hashtable.last_clear_time;
+}
+
+/**
+get shm init time
+parameters:
+	context: the context pointer
+return the init time
+*/
+static inline int64_t shmcache_get_init_time(struct shmcache_context *context)
+{
+    return context->memory->init_time;
+}
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

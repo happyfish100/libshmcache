@@ -75,18 +75,26 @@ JNIEXPORT jlong JNICALL Java_org_csource_shmcache_ShmCache_doGetExpires
 
 /*
  * Class:     org_csource_shmcache_ShmCache
- * Method:    doRemoveAll
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_csource_shmcache_ShmCache_doRemoveAll
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     org_csource_shmcache_ShmCache
  * Method:    doClear
  * Signature: (J)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_csource_shmcache_ShmCache_doClear
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_csource_shmcache_ShmCache
+ * Method:    doGetLastClearTime
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_csource_shmcache_ShmCache_doGetLastClearTime
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_csource_shmcache_ShmCache
+ * Method:    doGetInitTime
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_csource_shmcache_ShmCache_doGetInitTime
   (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus

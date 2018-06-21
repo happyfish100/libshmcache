@@ -89,7 +89,7 @@ void JNICALL Java_org_csource_shmcache_ShmCache_doSet
     }
 }
 
-JNIEXPORT jlong JNICALL Java_org_csource_shmcache_ShmCache_doIncr
+jlong JNICALL Java_org_csource_shmcache_ShmCache_doIncr
   (JNIEnv *env, jobject obj, jlong handler, jstring key,
    jlong increment, jint ttl)
 {
@@ -249,23 +249,7 @@ jlong JNICALL Java_org_csource_shmcache_ShmCache_doGetExpires
     }
 }
 
-JNIEXPORT jboolean JNICALL Java_org_csource_shmcache_ShmCache_doRemoveAll
-  (JNIEnv *env, jobject obj, jlong handler)
-{
-    struct shmcache_context *context;
-
-    context = (struct shmcache_context *)handler;
-    if (context == NULL) {
-        logError("file: "__FILE__", line: %d, "
-                "empty handler", __LINE__);
-        throws_exception(env, "empty handler");
-        return false;
-    }
-
-    return shmcache_remove_all(context) == 0;
-}
-
-JNIEXPORT jboolean JNICALL Java_org_csource_shmcache_ShmCache_doClear
+jboolean JNICALL Java_org_csource_shmcache_ShmCache_doClear
   (JNIEnv *env, jobject obj, jlong handler)
 {
     struct shmcache_context *context;
@@ -279,4 +263,36 @@ JNIEXPORT jboolean JNICALL Java_org_csource_shmcache_ShmCache_doClear
     }
 
     return shmcache_clear(context) == 0;
+}
+
+jlong JNICALL Java_org_csource_shmcache_ShmCache_doGetLastClearTime
+  (JNIEnv *env, jobject obj, jlong handler)
+{
+    struct shmcache_context *context;
+
+    context = (struct shmcache_context *)handler;
+    if (context == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "empty handler", __LINE__);
+        throws_exception(env, "empty handler");
+        return 0;
+    }
+
+    return shmcache_get_last_clear_time(context);
+}
+
+jlong JNICALL Java_org_csource_shmcache_ShmCache_doGetInitTime
+  (JNIEnv *env, jobject obj, jlong handler)
+{
+    struct shmcache_context *context;
+
+    context = (struct shmcache_context *)handler;
+    if (context == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "empty handler", __LINE__);
+        throws_exception(env, "empty handler");
+        return 0;
+    }
+
+    return shmcache_get_init_time(context);
 }
