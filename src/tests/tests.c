@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
             (int)sizeof(struct shm_hash_entry));
 
     if ((result=shmcache_init_from_file(&context,
-                    "../../conf/libshmcache.conf")) != 0)
+                    "/usr/local/etc/libshmcache.conf")) != 0)
     {
         return result;
     }
