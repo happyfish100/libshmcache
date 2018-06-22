@@ -4,18 +4,23 @@ libshmcache may be copied or modified under the terms of BSD License.
 Please visit the libshmcache Home Page for more detail.
 website: https://github.com/happyfish100/libshmcache
 
-#step 1. compile && install libfastcommon
+# step 1. compile && install libfastcommon
 git clone https://github.com/happyfish100/libfastcommon
-cd libfastcommon && ./make.sh && ./make.sh install
+cd libfastcommon && ./make.sh && sudo ./make.sh install
 
-#step 2. compile && install libshmcache
+# step 2. compile && install libshmcache
 git clone https://github.com/happyfish100/libshmcache
-cd libshmcache/src && make && make install
-cd tools && make && make install
+cd libshmcache/src && make && sudo make install
+cd tools && make && sudo make install
 cd ../..
 
-#step 3. compile && install libshmcache php extension
+# step 3. [optional] compile && install libshmcache php extension
 cd php-shmcache
 phpize
 ./configure
-make && make install
+make && sudo make install
+cd ..
+
+# step 4. [optional] compile && install java JNI library
+cd java/jni
+./make.sh && sudo make install

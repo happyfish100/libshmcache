@@ -15,6 +15,7 @@ static void throws_exception(JNIEnv *env, const char *message)
 jlong JNICALL Java_org_csource_shmcache_ShmCache_doInit
   (JNIEnv *env, jobject obj, jstring config_filename)
 {
+
     struct shmcache_context *context;
     jboolean *isCopy = NULL;
     const char *szFilename;
@@ -52,6 +53,52 @@ void JNICALL Java_org_csource_shmcache_ShmCache_doDestroy
 
     shmcache_destroy(context);
     free(context);
+}
+
+void JNICALL Java_org_csource_shmcache_ShmCache_doSetVO
+  (JNIEnv *env, jobject obj, jlong handler, jstring key, jobject vo)
+{
+    struct shmcache_context *context;
+    struct shmcache_key_info shmcache_key;
+    struct shmcache_value_info shmcache_value;
+    jboolean *isCopy = NULL;
+    jclass value_class;
+    jmethodID value_mid;
+    jmethodID options_mid;
+    jmethodID expires_mid;
+    jbyteArray value;
+    int result;
+
+    context = (struct shmcache_context *)handler;
+    if (context == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "empty handler", __LINE__);
+        throws_exception(env, "empty handler");
+        return;
+    }
+
+    shmcache_key.length = (*env)->GetStringUTFLength(env, key);
+    shmcache_key.data = (char *)((*env)->GetStringUTFChars(env, key, isCopy));
+
+    value_class = (*env)->GetObjectClass(env, vo);
+    value_mid = (*env)->GetMethodID(env, value_class, "getValue", "()[B");
+    options_mid = (*env)->GetMethodID(env, value_class, "getOptions", "()I");
+    expires_mid = (*env)->GetMethodID(env, value_class, "getExpires", "()J");
+
+    value = (*env)->CallObjectMethod(env, vo, value_mid);
+    shmcache_value.options = (*env)->CallIntMethod(env, vo, options_mid);
+    shmcache_value.expires = (*env)->CallLongMethod(env, vo, expires_mid) / 1000;
+
+    shmcache_value.data = (char *)((*env)->GetByteArrayElements(env, value, isCopy));
+    shmcache_value.length = (*env)->GetArrayLength(env, value);
+
+    result = shmcache_set_ex(context, &shmcache_key, &shmcache_value);
+
+    (*env)->ReleaseStringUTFChars(env, key, shmcache_key.data);
+    (*env)->ReleaseByteArrayElements(env, value, (jbyte *)shmcache_value.data, 0);
+    if (result != 0) {
+        throws_exception(env, strerror(result));
+    }
 }
 
 void JNICALL Java_org_csource_shmcache_ShmCache_doSet
@@ -119,7 +166,71 @@ jlong JNICALL Java_org_csource_shmcache_ShmCache_doIncr
     return new_value;
 }
 
-jbyteArray JNICALL Java_org_csource_shmcache_ShmCache_doGet
+jobject JNICALL Java_org_csource_shmcache_ShmCache_doGet
+  (JNIEnv *env, jobject obj, jlong handler, jstring key)
+{
+#define VALUE_CLASS_NAME "org/csource/shmcache/ShmCache$Value"
+
+    struct shmcache_context *context;
+    jboolean *isCopy = NULL;
+    int result;
+    struct shmcache_key_info shmcache_key;
+    struct shmcache_value_info shmcache_value;
+    jbyteArray value;
+    jobject vo;
+
+    context = (struct shmcache_context *)handler;
+    if (context == NULL) {
+        logError("file: "__FILE__", line: %d, "
+                "empty handler", __LINE__);
+        throws_exception(env, "empty handler");
+        return NULL;
+    }
+
+    shmcache_key.length = (*env)->GetStringUTFLength(env, key);
+    shmcache_key.data = (char *)((*env)->GetStringUTFChars(env, key, isCopy));
+    result = shmcache_get(context, &shmcache_key, &shmcache_value);
+    (*env)->ReleaseStringUTFChars(env, key, shmcache_key.data);
+
+    if (result == 0) {
+        char error_info[256];
+        jclass value_class;
+        jmethodID constructor_mid;
+
+        value_class = (*env)->FindClass(env, VALUE_CLASS_NAME);
+        if (value_class == NULL) {
+            sprintf(error_info, "can find class: %s", VALUE_CLASS_NAME);
+            logError("file: "__FILE__", line: %d, %s",
+                    __LINE__, error_info);
+            throws_exception(env, error_info);
+            return 0;
+        }
+
+        constructor_mid = (*env)->GetMethodID(env, value_class,
+                "<init>", "([BIJ)V");
+        if (constructor_mid == NULL) {
+            sprintf(error_info, "can find constructor for class %s", VALUE_CLASS_NAME);
+            logError("file: "__FILE__", line: %d, %s",
+                    __LINE__, error_info);
+            throws_exception(env, error_info);
+            return 0;
+        }
+
+        value = (*env)->NewByteArray(env, shmcache_value.length);
+        (*env)->SetByteArrayRegion(env, value, 0, shmcache_value.length,
+                (const jbyte *)shmcache_value.data);
+
+        vo = (*env)->NewObject(env, value_class, constructor_mid,
+                value, shmcache_value.options,
+                (int64_t)shmcache_value.expires * 1000);
+    } else {
+        vo = NULL;
+    }
+
+    return vo;
+}
+
+jbyteArray JNICALL Java_org_csource_shmcache_ShmCache_doGetBytes
   (JNIEnv *env, jobject obj, jlong handler, jstring key)
 {
     struct shmcache_context *context;
@@ -146,29 +257,6 @@ jbyteArray JNICALL Java_org_csource_shmcache_ShmCache_doGet
         value = (*env)->NewByteArray(env, shmcache_value.length);
         (*env)->SetByteArrayRegion(env, value, 0, shmcache_value.length,
                 (const jbyte *)shmcache_value.data);
-
-        /*
-        char fixed_buff[256];
-        char *buff;
-        if (shmcache_value.length < (int)sizeof(fixed_buff)) {
-            buff = fixed_buff;
-        } else {
-            buff = (char *)malloc(shmcache_value.length + 1);
-            if (buff == NULL) {
-                logError("file: "__FILE__", line: %d, "
-                        "malloc %d bytes fail", __LINE__,
-                        shmcache_value.length);
-                throws_exception(env, "out of memory");
-                return NULL;
-            }
-        }
-        memcpy(buff, shmcache_value.data, shmcache_value.length);
-        *(buff + shmcache_value.length) = '\0';
-        value = (*env)->NewStringUTF(env, buff);
-        if (buff != fixed_buff) {
-            free(buff);
-        }
-        */
     } else {
         value = NULL;
     }

@@ -9,6 +9,18 @@ extern "C" {
 #endif
 #undef org_csource_shmcache_ShmCache_TTL_NEVER_EXPIRED
 #define org_csource_shmcache_ShmCache_TTL_NEVER_EXPIRED 0L
+#undef org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_STRING
+#define org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_STRING 0L
+#undef org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_INTEGER
+#define org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_INTEGER 1L
+#undef org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_NONE
+#define org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_NONE 256L
+#undef org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_IGBINARY
+#define org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_IGBINARY 512L
+#undef org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_MSGPACK
+#define org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_MSGPACK 1024L
+#undef org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_PHP
+#define org_csource_shmcache_ShmCache_SHMCACHE_SERIALIZER_PHP 2048L
 /*
  * Class:     org_csource_shmcache_ShmCache
  * Method:    doInit
@@ -24,6 +36,14 @@ JNIEXPORT jlong JNICALL Java_org_csource_shmcache_ShmCache_doInit
  */
 JNIEXPORT void JNICALL Java_org_csource_shmcache_ShmCache_doDestroy
   (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_csource_shmcache_ShmCache
+ * Method:    doSetVO
+ * Signature: (JLjava/lang/String;Lorg/csource/shmcache/ShmCache/Value;)V
+ */
+JNIEXPORT void JNICALL Java_org_csource_shmcache_ShmCache_doSetVO
+  (JNIEnv *, jobject, jlong, jstring, jobject);
 
 /*
  * Class:     org_csource_shmcache_ShmCache
@@ -43,10 +63,18 @@ JNIEXPORT jlong JNICALL Java_org_csource_shmcache_ShmCache_doIncr
 
 /*
  * Class:     org_csource_shmcache_ShmCache
- * Method:    doGet
+ * Method:    doGetBytes
  * Signature: (JLjava/lang/String;)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_org_csource_shmcache_ShmCache_doGet
+JNIEXPORT jbyteArray JNICALL Java_org_csource_shmcache_ShmCache_doGetBytes
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_csource_shmcache_ShmCache
+ * Method:    doGet
+ * Signature: (JLjava/lang/String;)Lorg/csource/shmcache/ShmCache/Value;
+ */
+JNIEXPORT jobject JNICALL Java_org_csource_shmcache_ShmCache_doGet
   (JNIEnv *, jobject, jlong, jstring);
 
 /*

@@ -4,8 +4,52 @@ import java.util.HashMap;
 import java.io.UnsupportedEncodingException;
 
 public class ShmCache {
+    public static class Value {
+        private byte[] value;
+        private int options;  //options for application
+        private long expires; //expire time in millisenconds
+
+        public Value(byte[] value, int options, long expires)
+        {
+            this.value = value;
+            this.options = options;
+            this.expires = expires;
+        }
+
+        public byte[] getValue()
+        {
+            return this.value;
+        }
+
+        public int getOptions()
+        {
+            return this.options;
+        }
+
+        public long getExpires()
+        {
+            return this.expires;
+        }
+
+        public String toString()
+        {
+            try {
+                return "value: " + new String(this.value, ShmCache.charset)
+                    + ", options: " + this.options + ", expires: " + this.expires;
+            } catch (UnsupportedEncodingException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
 
     public static final int TTL_NEVER_EXPIRED = 0;
+
+    public static final int SHMCACHE_SERIALIZER_STRING = 0;   //string type
+    public static final int SHMCACHE_SERIALIZER_INTEGER = 1;  //integer type
+    public static final int SHMCACHE_SERIALIZER_NONE = 0x100;
+    public static final int SHMCACHE_SERIALIZER_IGBINARY = 0x200;
+    public static final int SHMCACHE_SERIALIZER_MSGPACK = 0x400;
+    public static final int SHMCACHE_SERIALIZER_PHP = 0x800;
 
     private static HashMap<String, ShmCache> instances = new HashMap<String, ShmCache>();
     private static String charset = "UTF-8";
@@ -15,9 +59,11 @@ public class ShmCache {
 
     private native long doInit(String configFilename);
     private native void doDestroy(long handler);
+    private native void doSetVO(long handler, String key, Value value);
     private native void doSet(long handler, String key, byte[] value, int ttl);
     private native long doIncr(long handler, String key, long increment, int ttl);
-    private native byte[] doGet(long handler, String key);
+    private native byte[] doGetBytes(long handler, String key);
+    private native Value doGet(long handler, String key);
     private native boolean doDelete(long handler, String key);
     private native boolean doSetTTL(long handler, String key, int ttl);
     private native long doGetExpires(long handler, String key);
@@ -30,11 +76,16 @@ public class ShmCache {
         return libraryFilename;
     }
 
-    public static void setLibraryFilename(String value)
+    /**
+      * set libshmcachejni.so filename to load
+      * @param filename the full filename
+      * @return none
+      */
+    public static void setLibraryFilename(String filename)
     {
         if (libraryFilename == null) {
-            System.load(value);  //load the library
-            libraryFilename = value;
+            System.load(filename);  //load the library
+            libraryFilename = filename;
         } else {
             throw new RuntimeException("library " + libraryFilename + " already loaded");
         }
@@ -94,13 +145,23 @@ public class ShmCache {
     }
 
     /**
+      * get the value of the key
+      * @param key the key
+      * @return the value object, null for not exists
+     */
+    public Value get(String key)
+    {
+        return doGet(this.handler, key);
+    }
+
+    /**
       * get byte array value of the key
       * @param key the key
       * @return byte array value, null for not exists
      */
-    public byte[] get(String key)
+    public byte[] getBytes(String key)
     {
-        return doGet(this.handler, key);
+        return doGetBytes(this.handler, key);
     }
 
     /**
@@ -110,12 +171,23 @@ public class ShmCache {
      */
     public String getString(String key)
     {
-        byte[] value = doGet(this.handler, key);
+        byte[] value = doGetBytes(this.handler, key);
         try {
             return value != null ? new String(value, charset) : null;
         } catch (UnsupportedEncodingException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    /**
+      * set value object of the key
+      * @param key the key
+      * @param value the value object
+      * @return none
+     */
+    public void set(String key, Value value)
+    {
+        doSetVO(this.handler, key, value);
     }
 
     /**
@@ -233,7 +305,7 @@ public class ShmCache {
         return doGetInitTime(this.handler) * 1000;
     }
 
-    public static void main(String[] args)
+    public static void main(String[] args) throws UnsupportedEncodingException
     {
         String configFilename = "/usr/local/etc/libshmcache.conf";
         String key;
@@ -251,13 +323,26 @@ public class ShmCache {
 
         ShmCache.setLibraryFilename("/Users/yuqing/Devel/libshmcache/java/jni/libshmcachejni.so");
         ShmCache shmCache = ShmCache.getInstance(configFilename);
+
+        Value vo;
+        vo = new Value(value.getBytes(charset), SHMCACHE_SERIALIZER_STRING,
+                System.currentTimeMillis() + 300 * 1000);
+        shmCache.set(key, vo);
+        System.out.println(shmCache.get(key));
+
         shmCache.set(key, value, 300);
         System.out.println("value: " + shmCache.getString(key));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
+        System.out.println(shmCache.get(key));
+
         System.out.println("set TTL: " + shmCache.setTTL(key, 600));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
+        System.out.println(shmCache.get(key));
+
         System.out.println("after incr: " + shmCache.incr(key, 1, TTL_NEVER_EXPIRED));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
+        System.out.println(shmCache.get(key));
+
         System.out.println("remove key: " + shmCache.remove(key));
     }
 }
