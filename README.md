@@ -6,7 +6,7 @@ libshmcache is a local share memory cache for multi processes.
 it is a high performance library because read mechanism is lockless.
 libshmcache is 100+ times faster than a remote interface such as redis.
 
-this project contains C library and a PHP extension.
+this project contains C library, PHP extension and Java JNI wrapper.
 
 Its high performance features include:
   * pthread mutex lock on write, read is lockless
