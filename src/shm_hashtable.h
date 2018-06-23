@@ -20,6 +20,18 @@
 #define HT_ENTRY_IS_VALID(entry, current_time) \
     (entry->expires == 0 || entry->expires >= current_time)
 
+#define SHMCACHE_MATCH_KEY_OP_EXACT    0
+#define SHMCACHE_MATCH_KEY_OP_LEFT     1
+#define SHMCACHE_MATCH_KEY_OP_RIGHT    2
+#define SHMCACHE_MATCH_KEY_OP_ANYWHERE \
+    (SHMCACHE_MATCH_KEY_OP_LEFT | SHMCACHE_MATCH_KEY_OP_RIGHT)
+
+struct shmcache_match_key_info {
+    char *key;
+    int length;
+    int op_type;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -97,10 +109,28 @@ hashtable entry to array
 parameters:
 	context: the context pointer
     array: the array, should call shm_ht_free_array after use
+    key_info: the match key info, NULL for match all
+    offset: start offset, based 0
+    count: row count limit
 return error no, 0 for success, != 0 for fail
 */
-int shm_ht_to_array(struct shmcache_context *context,
-        struct shmcache_hentry_array *array);
+int shm_ht_to_array_ex(struct shmcache_context *context,
+        struct shmcache_hentry_array *array,
+        struct shmcache_match_key_info *key_info,
+        const int offset, const int count);
+
+/**
+hashtable entry to array
+parameters:
+	context: the context pointer
+    array: the array, should call shm_ht_free_array after use
+return error no, 0 for success, != 0 for fail
+*/
+static inline int shm_ht_to_array(struct shmcache_context *context,
+        struct shmcache_hentry_array *array)
+{
+    return shm_ht_to_array_ex(context, array, NULL, 0, 0);
+}
 
 /**
 free the array return by shm_ht_to_array

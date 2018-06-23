@@ -271,23 +271,76 @@ int shm_ht_clear(struct shmcache_context *context)
     return ht_count;
 }
 
-int shm_ht_to_array(struct shmcache_context *context,
-        struct shmcache_hentry_array *array)
+static bool shm_ht_match_key(struct shmcache_match_key_info *key_info,
+        struct shm_hash_entry *entry)
+{
+    int loop;
+    int start;
+
+    if (entry->key_len < key_info->length) {
+        return false;
+    }
+    switch (key_info->op_type) {
+        case SHMCACHE_MATCH_KEY_OP_EXACT:
+            return key_info->length == entry->key_len &&
+                memcmp(key_info->key, entry->key, key_info->length) == 0;
+        case SHMCACHE_MATCH_KEY_OP_LEFT:
+            return memcmp(key_info->key, entry->key, key_info->length) == 0;
+        case SHMCACHE_MATCH_KEY_OP_RIGHT:
+            return memcmp(key_info->key, entry->key +
+                    (entry->key_len - key_info->length), key_info->length) == 0;
+        case SHMCACHE_MATCH_KEY_OP_ANYWHERE:
+            loop = entry->key_len - key_info->length + 1;
+            for (start=0; start<loop; start++) {
+                if (memcmp(key_info->key, entry->key + start,
+                            key_info->length) == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        default:
+            return false;
+    }
+}
+
+#define HT_KEY_MATCHED(key_info, entry) \
+    (key_info == NULL || shm_ht_match_key(key_info, entry))
+
+int shm_ht_to_array_ex(struct shmcache_context *context,
+        struct shmcache_hentry_array *array,
+        struct shmcache_match_key_info *key_info,
+        const int offset, const int count)
 {
     int64_t entry_offset;
     struct shm_hash_entry *src;
     struct shmcache_hash_entry *dest;
     char *value_data;
+    int row_count;
+    int i;
     int bytes;
     int current_time;
 
-    if (context->memory->hashtable.count == 0) {
+    if (offset < 0) {
+        logError("file: "__FILE__", line: %d, "
+                "invalid offset: %d", __LINE__, offset);
+        array->count = 0;
+        array->entries = NULL;
+        return EINVAL;
+    }
+
+    row_count = context->memory->hashtable.count - offset;
+    if (count > 0 && count < row_count) {
+        row_count = count;
+    }
+
+    if (row_count <= 0) {
         array->count = 0;
         array->entries = NULL;
         return 0;
     }
 
-    bytes = sizeof(struct shmcache_hash_entry) * context->memory->hashtable.count;
+    bytes = sizeof(struct shmcache_hash_entry) * row_count;
     array->entries = (struct shmcache_hash_entry *)malloc(bytes);
     if (array->entries == NULL) {
         logError("file: "__FILE__", line: %d, "
@@ -296,23 +349,28 @@ int shm_ht_to_array(struct shmcache_context *context,
         return ENOMEM;
     }
 
+    current_time = time(NULL);
+    i = 0;
+    entry_offset = shm_list_first(context);
+    while (entry_offset > 0 && i < offset) {
+        src = shm_get_hentry_ptr(context, entry_offset);
+        if (HT_ENTRY_IS_VALID(src, current_time) &&
+                HT_KEY_MATCHED(key_info, src))
+        {
+            ++i;
+        }
+        entry_offset = shm_list_next(context, entry_offset);
+    }
+
     memset(array->entries, 0, bytes);
     array->count = 0;
     dest = array->entries;
-    current_time = time(NULL);
 
-    entry_offset = shm_list_first(context);
     while (entry_offset > 0) {
-        if (array->count == context->memory->hashtable.count) {
-            logError("file: "__FILE__", line: %d, "
-                    "exceeds hash table count: %d",
-                    __LINE__, context->memory->hashtable.count);
-            shm_ht_free_array(array);
-            return EFAULT;
-        }
-
         src = shm_get_hentry_ptr(context, entry_offset);
-        if (!HT_ENTRY_IS_VALID(src, current_time)) {
+        if (!(HT_ENTRY_IS_VALID(src, current_time) &&
+                    HT_KEY_MATCHED(key_info, src)))
+        {
             entry_offset = shm_list_next(context, entry_offset);
             continue;
         }
@@ -340,6 +398,9 @@ int shm_ht_to_array(struct shmcache_context *context,
         entry_offset = shm_list_next(context, entry_offset);
         dest++;
         array->count++;
+        if (array->count == row_count) {
+            break;
+        }
     }
 
     return 0;

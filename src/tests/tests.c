@@ -12,35 +12,6 @@
 #include "shmcache/shm_hashtable.h"
 #include "shmcache/shmcache.h"
 
-static int test_dump(struct shmcache_context *context, const int dump_count)
-{
-    int result;
-    int i;
-    struct shmcache_hentry_array array;
-    struct shmcache_hash_entry *entry;
-    struct shmcache_hash_entry *end;
-
-    if ((result=shm_ht_to_array(context, &array)) != 0) {
-        return result;
-    }
-
-    printf("entry count: %d\n", array.count);
-    end = array.entries + array.count;
-    i = 0;
-    for (entry=array.entries; entry<end; entry++) {
-        printf("%d. key: %.*s, value(%d): %.*s\n",
-                ++i, entry->key.length, entry->key.data,
-                entry->value.length, entry->value.length,
-                entry->value.data);
-        if (dump_count > 0 && i == dump_count) {
-            break;
-        }
-    }
-
-    shm_ht_free_array(&array);
-    return 0;
-}
-
 int main(int argc, char *argv[])
 {
 #define MAX_VALUE_SIZE  (8 * 1024)
@@ -54,7 +25,7 @@ int main(int argc, char *argv[])
     struct shmcache_hash_entry *entries;
     struct shmcache_hash_entry tmp;
     int bytes;
-    int ttl = 60;
+    int ttl = 300;
     int i, k;
     int i1, i2;
 	
@@ -68,14 +39,6 @@ int main(int argc, char *argv[])
                     "/usr/local/etc/libshmcache.conf")) != 0)
     {
         return result;
-    }
-
-    if (argc > 1 &&  strcmp(argv[1], "dump") == 0) {
-        int dump_count = 0;
-        if (argc > 2) {
-            dump_count = atoi(argv[2]);
-        }
-        return test_dump(&context, dump_count);
     }
 
     bytes = sizeof(struct shmcache_hash_entry) * KEY_COUNT;
