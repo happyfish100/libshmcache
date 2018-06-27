@@ -33,6 +33,9 @@ static void usage(char *program)
             "\t -s <start> start offset, default: 0\n"
             "\t -n <row_count>, 0 means NO limit, default: 0\n"
             "\t -o <filename> output filename, default: output to sdtout\n"
+            "\n"
+            "\t the seperators can use escape characters, such as: \\\\ for \\, \n"
+            "\t \\t for tab, \\r for carriage return, \\n for new line\n"
             "\n", program);
 }
 
