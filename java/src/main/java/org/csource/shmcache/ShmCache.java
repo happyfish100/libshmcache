@@ -324,6 +324,9 @@ public class ShmCache {
         ShmCache.setLibraryFilename("/Users/yuqing/Devel/libshmcache/java/jni/libshmcachejni.so");
         ShmCache shmCache = ShmCache.getInstance(configFilename);
 
+        System.out.println("value: " + shmCache.getString(key));
+        System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
+
         Value vo;
         vo = new Value(value.getBytes(charset), SHMCACHE_SERIALIZER_STRING,
                 System.currentTimeMillis() + 300 * 1000);
