@@ -1,5 +1,8 @@
 
-directories:
+the native Java SDK for libshmcache to get config from the share memory.
+it can integrate into the spring framework to make development easy.
+
+* directories and descriptions:
 |__ jni   C source codes for JNI, use make.sh to compile and install
 |__ src   java source codes, use mvn to compile and package
     |__ main/java/org/csource/shmcache/
@@ -8,16 +11,16 @@ directories:
             |__ ShmCachePropertyConfigurer.java  sub-class of spring PropertyPlaceholderConfigurer 
 
 
-* use ShmCache config in property file:
-
+* use ShmCache config in the property file:
 KEY = @config([keyname],[defaultValue])
 
-keyname: the key name in the share memory, use the KEY when keyname is empty
+keyname: the key name in the share memory, use KEY when keyname is empty
 defaultValue: default value for the missed key, empty string when not set
 
-such as:
+for example:
 # get the config value of "app.name" from local share memory
 app.name = @config()
+
 
 * config example in spring xml file:
     <bean id="propertySource" class="org.csource.shmcache.ShmCachePropertyConfigurer">
@@ -41,7 +44,6 @@ the properties for class ShmCachePropertyConfigurer:
 
 
 * example for get config use Spring Bean in Serverlet:
-
 ...
 import org.csource.shmcache.ShmCachePropertyConfigurer;
 import org.springframework.context.ApplicationContext;
@@ -54,7 +56,8 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
   String value = configurer.getConfig(key);
   ...
 
-* example for get config in Java codes:
+
+* example for get config in natual Java codes:
 package xxx;
 import org.csource.shmcache.ShmCache;
 ...
