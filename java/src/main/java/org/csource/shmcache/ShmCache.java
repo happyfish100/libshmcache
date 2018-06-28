@@ -9,30 +9,25 @@ public class ShmCache {
         private int options;  //options for application
         private long expires; //expire time in millisenconds
 
-        public Value(byte[] value, int options, long expires)
-        {
+        public Value(byte[] value, int options, long expires) {
             this.value = value;
             this.options = options;
             this.expires = expires;
         }
 
-        public byte[] getValue()
-        {
+        public byte[] getValue() {
             return this.value;
         }
 
-        public int getOptions()
-        {
+        public int getOptions() {
             return this.options;
         }
 
-        public long getExpires()
-        {
+        public long getExpires() {
             return this.expires;
         }
 
-        public String toString()
-        {
+        public String toString() {
             try {
                 return "value: " + new String(this.value, ShmCache.charset)
                     + ", options: " + this.options + ", expires: " + this.expires;
@@ -71,8 +66,7 @@ public class ShmCache {
     private native long doGetLastClearTime(long handler);
     private native long doGetInitTime(long handler);
 
-    public static String getLibraryFilename()
-    {
+    public static String getLibraryFilename() {
         return libraryFilename;
     }
 
@@ -81,8 +75,7 @@ public class ShmCache {
       * @param filename the full filename
       * @return none
       */
-    public static void setLibraryFilename(String filename)
-    {
+    public static void setLibraryFilename(String filename) {
         if (libraryFilename == null) {
             System.load(filename);  //load the library
             libraryFilename = filename;
@@ -94,30 +87,25 @@ public class ShmCache {
         }
     }
 
-    public static String getCharset()
-    {
+    public static String getCharset() {
         return charset;
     }
 
-    public static void setCharset(String value)
-    {
+    public static void setCharset(String value) {
         charset = value;
     }
 
     // private for singleton
-    private ShmCache(String configFilename)
-    {
+    private ShmCache(String configFilename) {
         this.handler = doInit(configFilename);
     }
 
-    protected void finalize() throws Throwable
-    {
+    protected void finalize() throws Throwable {
         super.finalize();
         this.close();
     }
 
-    private void close()
-    {
+    private void close() {
         System.out.println("close");
         doDestroy(this.handler);
     }
@@ -127,8 +115,7 @@ public class ShmCache {
       * @param configFilename the config filename such as /usr/local/etc/libshmcache.conf
       * @return ShmCache object
      */
-    public synchronized static ShmCache getInstance(String configFilename)
-    {
+    public synchronized static ShmCache getInstance(String configFilename) {
         ShmCache obj = instances.get(configFilename);
         if (obj == null) {
             obj = new ShmCache(configFilename);
@@ -142,8 +129,7 @@ public class ShmCache {
       * clear ShmCache instances
       * @return none
      */
-    public synchronized static void clearInstances()
-    {
+    public synchronized static void clearInstances() {
         instances.clear();
     }
 
@@ -152,8 +138,7 @@ public class ShmCache {
       * @param key the key
       * @return the value object, null for not exists
      */
-    public Value get(String key)
-    {
+    public Value get(String key) {
         return doGet(this.handler, key);
     }
 
@@ -162,8 +147,7 @@ public class ShmCache {
       * @param key the key
       * @return byte array value, null for not exists
      */
-    public byte[] getBytes(String key)
-    {
+    public byte[] getBytes(String key) {
         return doGetBytes(this.handler, key);
     }
 
@@ -172,8 +156,7 @@ public class ShmCache {
       * @param key the key
       * @return string value, null for not exists
      */
-    public String getString(String key)
-    {
+    public String getString(String key) {
         byte[] value = doGetBytes(this.handler, key);
         try {
             return value != null ? new String(value, charset) : null;
@@ -188,8 +171,7 @@ public class ShmCache {
       * @param value the value object
       * @return none
      */
-    public void set(String key, Value value)
-    {
+    public void set(String key, Value value) {
         doSetVO(this.handler, key, value);
     }
 
@@ -200,8 +182,7 @@ public class ShmCache {
       * @param ttl the TTL in seconds
       * @return none
      */
-    public void set(String key, byte[] value, int ttl)
-    {
+    public void set(String key, byte[] value, int ttl) {
         doSet(this.handler, key, value, ttl);
     }
 
@@ -212,8 +193,7 @@ public class ShmCache {
       * @param ttl the TTL in seconds
       * @return none
      */
-    public void set(String key, String value, int ttl)
-    {
+    public void set(String key, String value, int ttl) {
         try {
             doSet(this.handler, key, value.getBytes(charset), ttl);
         } catch (UnsupportedEncodingException ex) {
@@ -227,8 +207,7 @@ public class ShmCache {
       * @param ttl the TTL in seconds
       * @return true for success, otherwise fail
      */
-    public boolean setTTL(String key, int ttl)
-    {
+    public boolean setTTL(String key, int ttl) {
         return doSetTTL(this.handler, key, ttl);
     }
 
@@ -239,8 +218,7 @@ public class ShmCache {
       * @param ttl the TTL in seconds
       * @return the value after increase
      */
-    public long incr(String key, long increment, int ttl)
-    {
+    public long incr(String key, long increment, int ttl) {
         return doIncr(this.handler, key, increment, ttl);
     }
 
@@ -249,8 +227,7 @@ public class ShmCache {
       * @param key the key to remove
       * @return true for success, false for not exists
      */
-    public boolean remove(String key)
-    {
+    public boolean remove(String key) {
         return doDelete(this.handler, key);
     }
 
@@ -258,8 +235,7 @@ public class ShmCache {
       * clear the shm, remove all keys
       * @return true for success, false for fail
      */
-    public boolean clear()
-    {
+    public boolean clear() {
         return doClear(this.handler);
     }
 
@@ -270,8 +246,7 @@ public class ShmCache {
       *  return -1 when not exist
       *  return 0 for never expired
      */
-    public long getExpires(String key)
-    {
+    public long getExpires(String key) {
         long expires = doGetExpires(this.handler, key);
         return expires > 0 ? (expires * 1000) : expires;
     }
@@ -283,8 +258,7 @@ public class ShmCache {
       *  return -1 when not exist
       *  return 0 for never expired
      */
-    public int getTTL(String key)
-    {
+    public int getTTL(String key) {
         long expires = this.getExpires(key);
         return (int)(expires > 0 ? (expires - System.currentTimeMillis()) / 1000 : expires);
     }
@@ -294,8 +268,7 @@ public class ShmCache {
       * @return last clear timestamp in milliseconds
       *  return 0 for never cleared
      */
-    public long getLastClearTime()
-    {
+    public long getLastClearTime() {
         return doGetLastClearTime(this.handler) * 1000;
     }
 
@@ -303,13 +276,11 @@ public class ShmCache {
       * get the shm init timestamp
       * @return the shm init timestamp in milliseconds
      */
-    public long getInitTime()
-    {
+    public long getInitTime() {
         return doGetInitTime(this.handler) * 1000;
     }
 
-    public static void main(String[] args) throws UnsupportedEncodingException
-    {
+    public static void main(String[] args) throws UnsupportedEncodingException {
         String configFilename = "/usr/local/etc/libshmcache.conf";
         String key;
         String value;
