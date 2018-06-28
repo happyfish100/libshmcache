@@ -86,8 +86,11 @@ public class ShmCache {
         if (libraryFilename == null) {
             System.load(filename);  //load the library
             libraryFilename = filename;
+        } else if (libraryFilename.equals(filename)) {
+            System.err.println("[WARNING] library " + libraryFilename + " already loaded");
         } else {
-            throw new RuntimeException("library " + libraryFilename + " already loaded");
+            throw new RuntimeException("library " + libraryFilename
+                    + " already loaded, can't change to " + filename);
         }
     }
 
