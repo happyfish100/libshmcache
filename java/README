@@ -12,7 +12,7 @@ it can integrate into the spring framework to make development easy.
 
 
 * use ShmCache config in the property file:
-KEY = @config([keyname],[defaultValue])
+KEY = @config([keyname][,defaultValue])
 
 keyname: the key name in the share memory, use KEY when keyname is empty
 defaultValue: default value for the missed key, empty string when not set

@@ -139,8 +139,13 @@ static void parse_args(int argc, char **argv)
             default:
                 show_usage = true;
                 usage(argv[0]);
-                break;
+                return;
         }
+    }
+
+    if (optind != argc) {
+        show_usage = true;
+        usage(argv[0]);
     }
 }
 
