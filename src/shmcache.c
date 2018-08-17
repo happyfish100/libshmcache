@@ -579,10 +579,18 @@ int shmcache_load_config(struct shmcache_config *config,
 
     do {
         type = iniGetStrValue(NULL, "type", &iniContext);
-        if (type == NULL || strcasecmp(type, "shm") == 0) {
-            config->type = SHMCACHE_TYPE_SHM;
-        } else {
+        if (type == NULL) {
             config->type = SHMCACHE_TYPE_MMAP;
+        } else if (strcasecmp(type, "shm") == 0) {
+            config->type = SHMCACHE_TYPE_SHM;
+        } else if (strcasecmp(type, "mmap") == 0) {
+            config->type = SHMCACHE_TYPE_MMAP;
+        } else {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, invalid type: %s",
+                    __LINE__, config_filename, type);
+            result = EINVAL;
+            break;
         }
 
         filename = iniGetStrValue(NULL, "filename", &iniContext);
