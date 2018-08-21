@@ -741,8 +741,6 @@ PHP_MINIT_FUNCTION(shmcache)
              SHMCACHE_NEVER_EXPIRED TSRMLS_CC);
 
      /* serializer */
-     zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_NONE"),
-             SHMCACHE_SERIALIZER_NONE TSRMLS_CC);
      zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_IGBINARY"),
              SHMCACHE_SERIALIZER_IGBINARY TSRMLS_CC);
      zend_declare_class_constant_long(shmcache_ce, ZEND_STRL("SERIALIZER_MSGPACK"),

@@ -9,7 +9,8 @@ igbinary_unserialize_func igbinary_unpack_func = NULL;
 
 int shmcache_serializers = SHMCACHE_SERIALIZER_STRING |
         SHMCACHE_SERIALIZER_INTEGER |
-        SHMCACHE_SERIALIZER_NONE |
+        SHMCACHE_SERIALIZER_LIST    |
+        SHMCACHE_SERIALIZER_MAP     |
         SHMCACHE_SERIALIZER_PHP;
 
 extern int shmcache_php_pack(zval *pzval, smart_str *buf);
@@ -75,19 +76,6 @@ int shmcache_serialize(zval *pzval,
 
     serializer = output->value->options;
     switch (serializer) {
-        case SHMCACHE_SERIALIZER_NONE:
-            if (Z_TYPE_P(pzval) == IS_STRING) {
-                output->value->data = Z_STRVAL_P(pzval);
-                output->value->length = Z_STRLEN_P(pzval);
-                return 0;
-            } else {
-                output->value->data = NULL;
-                output->value->length = 0;
-                logError("file: "__FILE__", line: %d, "
-                        "invalid type: %d, must be string",
-                        __LINE__, Z_TYPE_P(pzval));
-                return EINVAL;
-            }
         case SHMCACHE_SERIALIZER_IGBINARY:
             return shmcache_igbinary_pack(pzval, &output->value->data,
                     &output->value->length);
@@ -143,7 +131,6 @@ int shmcache_unserialize(struct shmcache_value_info *value, zval *rv)
     int len;
 
     switch (value->options) {
-        case SHMCACHE_SERIALIZER_NONE:
         case SHMCACHE_SERIALIZER_STRING:
             ZEND_ZVAL_STRINGL(rv, value->data, value->length, 1);
             return 0;

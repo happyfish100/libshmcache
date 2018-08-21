@@ -56,8 +56,13 @@ int main(int argc, char *argv[])
     key.length = strlen(key.data);
     result = shmcache_get(&context, &key, &value);
     if (result == 0) {
-        printf("value options: %d, value length: %d, value:\n%.*s\n",
-                value.options, value.length, value.length, value.data);
+        printf("value options: %d (%s serializer), value length: %d",
+                value.options, shmcache_get_serializer_label(value.options),
+                value.length);
+        if ((value.options & SHMCACHE_SERIALIZER_STRING) != 0) {
+            printf(", value:\n%.*s", value.length, value.data);
+        }
+        printf("\n");
     } else {
         fprintf(stderr, "get key: %s fail, errno: %d\n",  key.data, result);
     }

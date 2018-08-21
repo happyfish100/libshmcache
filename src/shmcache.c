@@ -996,8 +996,10 @@ const char *shmcache_get_serializer_label(const int serializer)
             return "string";
         case SHMCACHE_SERIALIZER_INTEGER:
             return "integer";
-        case SHMCACHE_SERIALIZER_NONE:
-            return "none";
+        case SHMCACHE_SERIALIZER_LIST:
+            return "list";
+        case SHMCACHE_SERIALIZER_MAP:
+            return "map";
         case SHMCACHE_SERIALIZER_MSGPACK:
             return "msgpack";
         case SHMCACHE_SERIALIZER_IGBINARY:

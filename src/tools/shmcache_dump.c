@@ -197,11 +197,19 @@ static int do_dump(struct shmcache_context *context, FILE *fp)
 
     end = array.entries + array.count;
     for (entry=array.entries; entry<end; entry++) {
-        fprintf(fp, "%.*s%s%.*s%s",
-                entry->key.length, entry->key.data,
-                key_value_seperator,
-                entry->value.length, entry->value.data,
-                row_seperator);
+        if ((entry->value.options & SHMCACHE_SERIALIZER_STRING) != 0) {
+            fprintf(fp, "%.*s%s%.*s%s",
+                    entry->key.length, entry->key.data,
+                    key_value_seperator,
+                    entry->value.length, entry->value.data,
+                    row_seperator);
+        } else {
+            fprintf(fp, "%.*s%s<%s serializer, data length: %d>%s",
+                    entry->key.length, entry->key.data,
+                    key_value_seperator,
+                    shmcache_get_serializer_label(entry->value.options),
+                    entry->value.length, row_seperator);
+        }
     }
 
     shm_ht_free_array(&array);
