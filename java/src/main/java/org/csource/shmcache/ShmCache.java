@@ -1,7 +1,16 @@
 package org.csource.shmcache;
 
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.UnsupportedEncodingException;
+import java.io.StringReader;
+import javax.json.Json;
+import javax.json.JsonReader;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonValue;
 
 public class ShmCache {
     public static class Value {
@@ -39,12 +48,13 @@ public class ShmCache {
 
     public static final int TTL_NEVER_EXPIRED = 0;
 
-    public static final int SHMCACHE_SERIALIZER_STRING = 0;   //string type
-    public static final int SHMCACHE_SERIALIZER_INTEGER = 1;  //integer type
-    public static final int SHMCACHE_SERIALIZER_NONE = 0x100;
+    public static final int SHMCACHE_SERIALIZER_STRING   = 0x1;   //string type
+    public static final int SHMCACHE_SERIALIZER_LIST     = (SHMCACHE_SERIALIZER_STRING | 0x2);
+    public static final int SHMCACHE_SERIALIZER_MAP      = (SHMCACHE_SERIALIZER_STRING | 0x4);
+    public static final int SHMCACHE_SERIALIZER_INTEGER  = (SHMCACHE_SERIALIZER_STRING | 0x8);
     public static final int SHMCACHE_SERIALIZER_IGBINARY = 0x200;
-    public static final int SHMCACHE_SERIALIZER_MSGPACK = 0x400;
-    public static final int SHMCACHE_SERIALIZER_PHP = 0x800;
+    public static final int SHMCACHE_SERIALIZER_MSGPACK  = 0x400;
+    public static final int SHMCACHE_SERIALIZER_PHP      = 0x800;
 
     private static HashMap<String, ShmCache> instances = new HashMap<String, ShmCache>();
     private static String charset = "UTF-8";
@@ -138,7 +148,7 @@ public class ShmCache {
       * @param key the key
       * @return the value object, null for not exists
      */
-    public Value get(String key) {
+    public Value getValue(String key) {
         return doGet(this.handler, key);
     }
 
@@ -160,6 +170,98 @@ public class ShmCache {
         byte[] value = doGetBytes(this.handler, key);
         try {
             return value != null ? new String(value, charset) : null;
+        } catch (UnsupportedEncodingException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+      * json string to list
+      * @param value the value
+      * @return string list, null for not exists
+     */
+    public List<String> jsonToList(String value) {
+        ArrayList<String> list = new ArrayList<String>();
+        JsonReader jsonReader = Json.createReader(new StringReader(value));
+        try {
+            JsonArray array = jsonReader.readArray();
+            for (JsonValue jvalue: array) {
+                list.add(jvalue.toString());
+            }
+        } finally {
+            jsonReader.close();
+        }
+
+        return list;
+    }
+
+    /**
+      * get string list of the key
+      * @param key the key
+      * @return string list, null for not exists
+     */
+    public List<String> getList(String key) {
+        return jsonToList(getString(key));
+    }
+
+    /**
+      * json string to map
+      * @param value the value
+      * @return string map, null for not exists
+     */
+    public Map<String, String> jsonToMap(String value) {
+        if (value == null) {
+            return null;
+        }
+        HashMap<String, String> map= new HashMap<String, String>();
+        JsonReader jsonReader = Json.createReader(new StringReader(value));
+        try {
+            JsonObject jobject = jsonReader.readObject();
+            for (Map.Entry<String, JsonValue> entry : jobject.entrySet()) {
+                map.put(entry.getKey(), entry.getValue().toString());
+            }
+        } finally {
+            jsonReader.close();
+        }
+
+        return map;
+    }
+
+    /**
+      * get string map of the key
+      * @param key the key
+      * @return string map, null for not exists
+     */
+    public Map<String, String> getMap(String key) {
+        return jsonToMap(getString(key));
+    }
+
+    /**
+      * get the value of the key
+      * @param key the key
+      * @return the value object (String, Long, List<String>, Map<String, String> or byte[]),
+        null for not exists
+     */
+    public Object get(String key) {
+        Value vo = doGet(this.handler, key);
+        if (vo == null) {
+            return null;
+        }
+
+        byte[] bs = vo.getValue();
+        try {
+            switch (vo.getOptions()) {
+                case SHMCACHE_SERIALIZER_STRING:
+                    return new String(bs, charset);
+                case SHMCACHE_SERIALIZER_INTEGER:
+                    return Long.parseLong(new String(bs, charset));
+                case SHMCACHE_SERIALIZER_LIST:
+                    return jsonToList(new String(bs, charset));
+                case SHMCACHE_SERIALIZER_MAP:
+                    return jsonToMap(new String(bs, charset));
+                default:
+                    return bs;
+            }
         } catch (UnsupportedEncodingException ex) {
             throw new RuntimeException(ex);
         }
@@ -298,7 +400,7 @@ public class ShmCache {
         ShmCache.setLibraryFilename("/Users/yuqing/Devel/libshmcache/java/jni/libshmcachejni.so");
         ShmCache shmCache = ShmCache.getInstance(configFilename);
 
-        System.out.println("value: " + shmCache.getString(key));
+        System.out.println("value: " + shmCache.get(key));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
 
         Value vo;
@@ -310,16 +412,18 @@ public class ShmCache {
         shmCache.set(key, value, 300);
         System.out.println("value: " + shmCache.getString(key));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
-        System.out.println(shmCache.get(key));
+        System.out.println(shmCache.getValue(key));
 
         System.out.println("set TTL: " + shmCache.setTTL(key, 600));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
-        System.out.println(shmCache.get(key));
+        System.out.println(shmCache.getValue(key));
 
         System.out.println("after incr: " + shmCache.incr(key, 1, TTL_NEVER_EXPIRED));
         System.out.println("TTL: " + shmCache.getTTL(key) + ", expires: " + shmCache.getExpires(key));
-        System.out.println(shmCache.get(key));
+        System.out.println(shmCache.getValue(key));
 
         System.out.println("remove key: " + shmCache.remove(key));
+
+
     }
 }
