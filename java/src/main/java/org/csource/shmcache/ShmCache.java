@@ -175,6 +175,17 @@ public class ShmCache {
         }
     }
 
+    private String unquote(String sv)
+    {
+        if (sv.length() >= 2 && (sv.charAt(0) == '"' &&
+                    sv.charAt(sv.length() - 1) == '"'))
+        {
+            return sv.substring(1, sv.length() - 1);
+        } else {
+            return sv;
+        }
+    }
+
     /**
       * json string to list
       * @param value the value
@@ -186,7 +197,7 @@ public class ShmCache {
         try {
             JsonArray array = jsonReader.readArray();
             for (JsonValue jvalue: array) {
-                list.add(jvalue.toString());
+                list.add(this.unquote(jvalue.toString()));
             }
         } finally {
             jsonReader.close();
@@ -218,7 +229,7 @@ public class ShmCache {
         try {
             JsonObject jobject = jsonReader.readObject();
             for (Map.Entry<String, JsonValue> entry : jobject.entrySet()) {
-                map.put(entry.getKey(), entry.getValue().toString());
+                map.put(entry.getKey(), this.unquote(entry.getValue().toString()));
             }
         } finally {
             jsonReader.close();
