@@ -87,7 +87,7 @@ static void *shm_do_mmap(const char *filename, int proj_id,
     }
 
     addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (addr == NULL) {
+    if (addr == NULL || addr == MAP_FAILED) {
         *err_no = errno != 0 ? errno : EPERM;
         logError("file: "__FILE__", line: %d, "
                 "mmap file: %s with size: %"PRId64" fail, "
