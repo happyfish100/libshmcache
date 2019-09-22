@@ -712,7 +712,7 @@ PHP_MINIT_FUNCTION(shmcache)
 {
 	zend_class_entry ce;
 
-	log_init();
+	log_try_init();
 
 #if PHP_MAJOR_VERSION >= 7
 	memcpy(&shmcache_object_handlers, zend_get_std_object_handlers(),
