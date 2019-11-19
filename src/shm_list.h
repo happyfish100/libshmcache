@@ -1,5 +1,9 @@
 //shm_list.h
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #ifndef _SHM_LIST_H
 #define _SHM_LIST_H
 
