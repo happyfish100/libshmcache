@@ -68,7 +68,7 @@ static int config_get(IniContext *context,
             }
 
             for (el=array.elements; el<end; el++) {
-                output = fc_strdup(el->str, el->len);
+                output = fc_strdup1(el->str, el->len);
                 if (output == NULL) {
                     return count;
                 }
@@ -83,7 +83,7 @@ static int config_get(IniContext *context,
             pOutValue[count++] = strdup("");
         }
     } else {
-        output = fc_strdup(value.data, value.length);
+        output = fc_strdup1(value.data, value.length);
         if (output == NULL) {
             return count;
         }

@@ -65,11 +65,14 @@ const zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, N
         { NULL, 0, NULL, 0, 0, 0, pass_rest_by_reference, return_reference, required_num_args },
 #endif
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_shmcache_version, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 // Every user visible function must have an entry in shmcache_functions[].
-	zend_function_entry shmcache_functions[] = {
-		ZEND_FE(shmcache_version, NULL)
-		{NULL, NULL, NULL}  /* Must be the last line */
-	};
+zend_function_entry shmcache_functions[] = {
+    ZEND_FE(shmcache_version, arginfo_shmcache_version)
+    {NULL, NULL, NULL}  /* Must be the last line */
+};
 
 zend_module_entry shmcache_module_entry = {
 	STANDARD_MODULE_HEADER,
