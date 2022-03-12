@@ -2,11 +2,10 @@
 %define LibShmcacheTool   libshmcache-tool
 %define LibShmcacheConfig libshmcache-config
 %define LibShmcacheDevel  libshmcache-devel
-%define LibShmcacheDebuginfo  libshmcache-debuginfo
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: libshmcache
-Version: 1.0.7
+Version: 1.0.8
 Release: 1%{?dist}
 Summary: a high performance local share memory cache for multi processes
 License: LGPL
@@ -16,10 +15,10 @@ Source: http://github.com/happyfish100/libshmcache/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
-BuildRequires: libfastcommon-devel >= 1.0.40
+BuildRequires: libfastcommon-devel >= 1.0.56
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-Requires: libfastcommon >= 1.0.40
+Requires: libfastcommon >= 1.0.56
 
 %description
 libshmcache is a local share memory cache for multi processes.
@@ -94,5 +93,5 @@ rm -rf %{buildroot}
 /usr/include/shmcache/*
 
 %changelog
-* Fri Dec 23 2016  Yu Qing <yuqing@yongche.com>
+* Fri Dec 23 2016  Yu Qing <384681@qq.com>
 - first RPM release (1.0)
