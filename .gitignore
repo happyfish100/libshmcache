@@ -1,0 +1,63 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dSYM
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.out
+java/target
+src/tools/shmcache_delete
+src/tools/shmcache_dump
+src/tools/shmcache_get
+src/tools/shmcache_remove_all
+src/tools/shmcache_set
+src/tools/shmcache_stats
+
+# other
+*.swp
+*.swo
+php-shmcache/.deps
+php-shmcache/.libs/
+php-shmcache/Makefile
+php-shmcache/Makefile.fragments
+php-shmcache/Makefile.global
+php-shmcache/Makefile.objects
+php-shmcache/acinclude.m4
+php-shmcache/aclocal.m4
+php-shmcache/autom4te.cache/
+php-shmcache/build/
+php-shmcache/config.guess
+php-shmcache/config.h
+php-shmcache/config.h.in
+php-shmcache/config.log
+php-shmcache/config.nice
+php-shmcache/config.status
+php-shmcache/config.sub
+php-shmcache/configure
+php-shmcache/configure.ac
+php-shmcache/install-sh
+php-shmcache/libtool
+php-shmcache/ltmain.sh
+php-shmcache/missing
+php-shmcache/mkinstalldirs
+php-shmcache/run-tests.php

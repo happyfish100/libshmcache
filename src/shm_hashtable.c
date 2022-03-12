@@ -14,7 +14,7 @@
 int shm_ht_get_capacity(const int max_count)
 {
     unsigned int *capacity;
-    capacity = hash_get_prime_capacity(max_count);
+    capacity = fc_hash_get_prime_capacity(max_count);
     if (capacity == NULL) {
         return max_count;
     }

@@ -144,7 +144,7 @@ struct shm_hashtable {
 };
 
 struct shm_striping_allocator {
-    time_t last_alloc_time;  //record the timestamp of fist allocate
+    time_t last_alloc_time;  //record the timestamp of first allocate
     int fail_times;   //allocate fail times
     short in_which_pool;  //in doing or done
     struct shm_segment_striping_pair index;

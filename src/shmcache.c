@@ -572,6 +572,7 @@ int shmcache_load_config(struct shmcache_config *config,
     char *type;
     char *filename;
     char *hash_function;
+    char new_funcname[64];
 
     if ((result=iniLoadFromFile(config_filename, &iniContext)) != 0) {
         return result;
@@ -648,7 +649,7 @@ int shmcache_load_config(struct shmcache_config *config,
 
         hash_function = iniGetStrValue(NULL, "hash_function", &iniContext);
         if (hash_function == NULL || *hash_function  == '\0') {
-            config->hash_func = simple_hash;
+            config->hash_func = fc_simple_hash;
         } else {
             void *handle;
             handle = dlopen(NULL, RTLD_LAZY);
@@ -661,11 +662,16 @@ int shmcache_load_config(struct shmcache_config *config,
             }
             config->hash_func = (HashFunc)dlsym(handle, hash_function);
             if (config->hash_func == NULL) {
-                logError("file: "__FILE__", line: %d, "
-                        "call dlsym %s fail, error: %s",
-                        __LINE__, hash_function, dlerror());
-                result = ENOENT;
-                break;
+                snprintf(new_funcname, sizeof(new_funcname),
+                        "fc_%s", hash_function);
+                config->hash_func = (HashFunc)dlsym(handle, new_funcname);
+                if (config->hash_func == NULL) {
+                    logError("file: "__FILE__", line: %d, "
+                            "call dlsym %s fail, error: %s",
+                            __LINE__, hash_function, dlerror());
+                    result = ENOENT;
+                    break;
+                }
             }
             dlclose(handle);
         }
