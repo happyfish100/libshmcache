@@ -949,6 +949,7 @@ void shmcache_stats_ex(struct shmcache_context *context, struct shmcache_stats *
         context->memory->usage.used.entry;
     stats->memory.usage = context->memory->usage;
     stats->hashtable.count = context->memory->hashtable.count;
+    stats->hashtable.capacity = context->memory->hashtable.capacity;
     stats->hashtable.segment_size = context->segments.hashtable.size;
     stats->max_key_count = MAX_KEYS_IN_SHM(context);
 
