@@ -100,7 +100,7 @@ struct shm_list {
 union shm_hentry_offset {
     int64_t offset;
     struct {
-        int index :16;
+        int64_t index :16;
         int64_t offset :48;
     } segment;
 };
