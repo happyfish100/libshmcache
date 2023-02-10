@@ -81,7 +81,7 @@ int shm_ht_set(struct shmcache_context *context,
     if ((new_entry=shm_value_allocator_alloc(context,
                     key->length, value->length)) == NULL)
     {
-       return result;
+       return ENOMEM;
     }
 
     previous = NULL;
