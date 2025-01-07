@@ -75,6 +75,7 @@ struct shmcache_config {
     } va_policy;   //value allocator policy
 
     struct {
+        bool read_within_lock;
         int trylock_interval_us;
         int detect_deadlock_interval_ms;
     } lock_policy;

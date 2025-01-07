@@ -12,6 +12,7 @@
 #include "fastcommon/common_define.h"
 #include "shmcache_types.h"
 #include "shm_hashtable.h"
+#include "shm_lock.h"
 
 #ifdef __cplusplus
 extern "C" {

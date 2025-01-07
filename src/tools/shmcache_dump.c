@@ -187,7 +187,7 @@ static int do_dump(struct shmcache_context *context, FILE *fp)
     struct shmcache_hash_entry *end;
     struct shmcache_match_key_info key_info;
     struct shmcache_match_key_info *pkey;
-    
+
     pkey = parse_search_key(&key_info);
     if ((result=shm_ht_to_array_ex(context, &array, pkey,
                     start_offset, row_count)) != 0)
@@ -246,7 +246,15 @@ int main(int argc, char **argv)
         return result;
     }
 
-    result = do_dump(&context, fp);
+    if (context.config.lock_policy.read_within_lock) {
+        if ((result=shm_lock(&context)) != 0) {
+            return result;
+        }
+        result = do_dump(&context, fp);
+        shm_unlock(&context);
+    } else {
+        result = do_dump(&context, fp);
+    }
     if (fp != stdout) {
         fclose(fp);
     }

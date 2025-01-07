@@ -16,7 +16,6 @@
 #include "shm_op_wrapper.h"
 #include "shmopt.h"
 #include "shm_list.h"
-#include "shm_lock.h"
 #include "shmcache.h"
 
 #define SHMCACE_MEM_ALIGN(x, align)  (((x) + (align - 1)) & (~(align - 1)))
@@ -688,6 +687,9 @@ int shmcache_load_config(struct shmcache_config *config,
 
         config->va_policy.max_fail_times = iniGetIntValue(NULL,
                 "value_policy.max_fail_times", &iniContext, 5);
+
+        config->lock_policy.read_within_lock = iniGetBoolValue(NULL,
+                "lock_policy.read_within_lock", &iniContext, false);
         config->lock_policy.trylock_interval_us = iniGetIntValue(NULL,
                 "lock_policy.trylock_interval_us", &iniContext, 200);
         if (config->lock_policy.trylock_interval_us <= 0) {
@@ -809,11 +811,25 @@ int shmcache_get(struct shmcache_context *context,
 {
     int result;
 
-    __sync_add_and_fetch(&context->memory->stats.hashtable.get.total, 1);
-    result = shm_ht_get(context, key, value);
-    if (result == 0) {
-        __sync_add_and_fetch(&context->memory->stats.hashtable.get.success, 1);
+    if (context->config.lock_policy.read_within_lock) {
+        if ((result=shm_lock(context)) != 0) {
+            return result;
+        }
+
+        context->memory->stats.hashtable.get.total++;
+        result = shm_ht_get(context, key, value);
+        if (result == 0) {
+            context->memory->stats.hashtable.get.success++;
+        }
+        shm_unlock(context);
+    } else {
+        __sync_add_and_fetch(&context->memory->stats.hashtable.get.total, 1);
+        result = shm_ht_get(context, key, value);
+        if (result == 0) {
+            __sync_add_and_fetch(&context->memory->stats.hashtable.get.success, 1);
+        }
     }
+
     return result;
 }
 
